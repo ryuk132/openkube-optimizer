@@ -1,6 +1,6 @@
 # v0.1 data and egress contract
 
-Status: **Accepted architecture contract — frozen on 2026-09-28; not implemented.** The user permits unavoidable transient API-object exposure; retention remains allowlist-only. Contract version: `data-v1`. D3 permits necessary allowlisted resource names in potentially sensitive reports; Kubernetes UIDs are memory-only internal data. The [security model](security.md), [evidence contract](evidence-eligibility.md), and [CLI contract](cli-contract.md) reference this document as the field-level authority. Milestone 1 foundation is complete; application work and Milestone 2 remain unauthorized.
+Status: **Accepted architecture contract — frozen on 2026-09-28; projection/reporting remain unimplemented.** The user permits unavoidable transient API-object exposure; retention remains allowlist-only. Contract version: `data-v1`. D3 permits necessary allowlisted resource names in potentially sensitive reports; Kubernetes UIDs are memory-only internal data. The [security model](security.md), [evidence contract](evidence-eligibility.md), and [CLI contract](cli-contract.md) reference this document as the field-level authority. Milestone 1 is complete and committed; the authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Milestone 3 is not authorized.
 
 ## Data OpenKube may collect
 
@@ -34,6 +34,8 @@ Paths use Kubernetes JSON field names, with `[]` meaning each item. Each map is 
 Read response `apiVersion` and `kind` only to validate the expected endpoint/schema; retain the fixed source/schema identifier, not arbitrary content. Unknown fields are ignored; an unsupported tested-version contract or unknown value in a required eligibility field causes abstention. SDK loss of required newer fields must be detected through version/fixture tests, not treated as absence of a feature.
 
 Derived internal values are limited to normalized CPU cores/memory bytes; allocation/template fingerprints of these allowlisted values; resolved ownership; lifecycle/rollout/support flags; timestamps and sample provenance; quality/coverage counters; fixed error/abstention codes; rule results; and static tool-authored explanations. Do not hash excluded fields or use arbitrary metadata in fingerprints.
+
+On 2026-09-29 the user approved exact CPU Decimal conversion and upward normalization of valid nonnegative fractional memory to whole bytes (`0.4` → 1, `1.0` → 1, `1.2` → 2). Never truncate fractional bytes. Preserve the existing quantity input and normalized-value ceilings. The [domain implementation](domain-model.md#exact-quantity-conversion) documents bounded syntax/expansion checks; no additional configuration or report fields are introduced. Milestone 2 constructors preserve explicit ABSENT/INVALID/UNAVAILABLE states and reject arbitrary nested objects; future API projection still has to prove the exact extraction boundary.
 
 ## Data OpenKube may retain in memory
 

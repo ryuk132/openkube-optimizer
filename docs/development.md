@@ -1,6 +1,6 @@
 # Local development
 
-The completed Milestone 1 foundation contains an importable package and one packaging smoke test. It has no CLI entry point, runtime dependencies, Kubernetes access, or application behavior. [ADR 0006](adr/0006-python-project-foundation.md) is Accepted on 2026-09-28 after review against the implementation and foundation validation. Milestone 2 requires separate authorization.
+Milestone 1 is complete and committed. The authorized [Milestone 2 domain model](domain-model.md) adds eleven immutable records, pure quantity conversion, and synthetic unit tests; it was accepted on 2026-09-29. There is no CLI entry point, runtime dependency, Kubernetes access, eligibility/rule logic, or reporting. [ADR 0006](adr/0006-python-project-foundation.md) remains Accepted on 2026-09-28; Accepted [ADR 0007](adr/0007-explicit-container-started.md) records the approved startup clarification. Milestone 3 is not authorized.
 
 ## Environment and dependencies
 
@@ -19,11 +19,11 @@ In VS Code, use **Python: Select Interpreter** and choose `.venv/bin/python`. `u
 
 | File or directory | Responsibility |
 | --- | --- |
-| `src/openkube_optimizer/` | Installed import package; currently only a side-effect-free initializer |
+| `src/openkube_optimizer/` | Installed package, side-effect-free initializers, immutable domain facts, and pure quantity conversion |
 | `tests/` | Developer checks; pytest importlib mode exercises the installed package without path manipulation |
 | `pyproject.toml` | Package metadata, direct dependency declarations, build backend, and tool settings |
 | `.venv/` | Ignored local interpreter environment and installed packages; not a container or security boundary |
-| `uv.lock` | Dependency resolution intended for version control, including transitive dependencies and platform markers; first commit pending |
+| `uv.lock` | Committed dependency resolution, including transitive dependencies and platform markers; unchanged by Milestone 2 |
 | `.python-version` | Exact development interpreter selection, separate from package compatibility metadata |
 
 The only direct development dependencies are **mypy 2.3.1**, **pytest 9.1.1**, and **Ruff 0.16.9** in the initial lock. The `dev` group is not published as runtime requirements. `uv_build==0.12.20` is pinned separately in the build-system requirements; the development lock is not a substitute for the build-backend pin. uv itself is a separately installed tool. The package version is `0.1.0.dev0`, not a released v0.1 application.
@@ -46,7 +46,7 @@ uv build
 
 Ruff checks its default error rules (`E4`, `E7`, `E9`, `F`) plus import sorting (`I`); its formatter uses standard defaults. mypy checks source and tests in strict mode, without ignored imports or other exceptions. To apply formatting intentionally, use `uv run --locked ruff format .`.
 
-The single test checks package import and installed distribution name/version. It verifies foundation wiring, not domain behavior or security guarantees. Review local Markdown links and cross-document status consistency when editing documentation. No documentation framework or task runner is required.
+The package smoke test checks installed distribution metadata. Domain tests exercise the [documented invariants](domain-model.md#tests-and-acceptance-boundary), exact/bounded conversion, safe representations/errors, and an isolated dependency-boundary import. They do not validate API integration, eligibility calculations, report safety, or complete-run UID lifetime. Review local Markdown links and cross-document status consistency when editing documentation. No documentation framework or task runner is required.
 
 ## Built-wheel verification
 
@@ -92,6 +92,26 @@ Foundation validation completed on 2026-09-28 with CPython 3.13.15 and uv 0.12.2
 
 Quality tools were executed directly from the newly locked/synchronized `.venv` to avoid unnecessary access to uv's external cache under the agent filesystem sandbox. Initial cache/network restrictions required approved retries for interpreter installation, lock generation, and downloading the official license text. Environment synchronization and building also used approved cache access. No validation failure remains; no application compatibility or security behavior was tested.
 
-At handoff, project files are untracked in the existing repository, including the pre-existing architecture documentation. `uv.lock` is present and not ignored, but no files are staged and no Git commit was created. The user explicitly requires review before staging or committing. The pending Git checkpoint is separate from completion of the foundation implementation and documentation checks.
+At the original Milestone 1 handoff, project files were untracked and the user deferred staging/committing. The user subsequently completed the foundation commit (`1e52383`, `First Commit`) before authorizing Milestone 2. Its new changes must not be staged, committed, or pushed without separate authorization.
 
-The user approved the [initial reference contract](compatibility.md), including its terminology and restricted authentication profile. Foundation implementation, license selection, reference-target documentation, and ADR 0006 review complete Milestone 1. Closure revalidation on 2026-09-28 passed: `uv sync --locked`, Ruff lint/format, strict mypy (two files), pytest (one test), build and isolated clean-wheel installation/import, 109 local documentation links and 32 anchors, and repository/ADR integrity checks. Source, tests, package metadata, the lock, evidence/rule documentation, and ADRs 0001–0005 remained unchanged during closure. No cluster compatibility, authentication, or application-filesystem guarantee has been established. Required runtime integration checks remain in later milestones; no SDK is installed and Milestone 2 has not started.
+The user approved the [initial reference contract](compatibility.md), including its terminology and restricted authentication profile. Foundation implementation, license selection, reference-target documentation, and ADR 0006 review complete Milestone 1. Closure revalidation on 2026-09-28 passed: `uv sync --locked`, Ruff lint/format, strict mypy (two files), pytest (one test), build and isolated clean-wheel installation/import, 109 local documentation links and 32 anchors, and repository/ADR integrity checks. Source, tests, package metadata, the lock, evidence/rule documentation, and ADRs 0001–0005 remained unchanged during that closure. These are historical foundation results; Milestone 2 has since been separately authorized, implemented, and accepted on 2026-09-29. No cluster compatibility, authentication, or application-filesystem guarantee has been established. Required runtime integration checks remain in later milestones; no SDK is installed.
+
+## Milestone 2 validation — accepted 2026-09-29
+
+Validation on 2026-09-29 passed with the existing CPython 3.13.15 environment and unchanged toolchain:
+
+| Executed check | Result |
+| --- | --- |
+| `uv sync --locked` | Passed using approved external-cache access after the sandbox blocked the initial attempt; lock unchanged |
+| `.venv/bin/ruff check .` | Passed |
+| `.venv/bin/ruff format --check .` | Passed |
+| `.venv/bin/mypy src tests` | Strict checking passed for all seven source/test files |
+| `.venv/bin/pytest -q` | 115 cases passed, including the existing packaging smoke test and domain import-boundary test |
+| `uv build` | Source distribution and wheel built with the existing pinned backend |
+| Wheel inspection | All four package source modules included; no runtime requirements or entry points |
+| Local Markdown link/anchor check | 135 local targets and 40 anchors passed across 23 Markdown files |
+| Scope and Git integrity | Eleven approved records only; no AnalysisSettings or later application modules; no fixtures directory; toolchain/lock and Accepted ADRs 0001–0006 unchanged; no staged or ignored tracked files |
+
+The documentation/integrity checks used read-only Python/AST/path checks, wheel inspection, and Git comparisons; no additional validation framework or dependencies were added. Quantity/type checks and dependency-boundary tests are reproducible through pytest. No cluster, authentication, runtime report/filesystem, or complete-run UID-lifetime validation was performed. ADR 0007 and Milestone 2 were explicitly accepted on 2026-09-29; no staging, commit, push, or Milestone 3 work was performed.
+
+Administrative closeout on 2026-09-29 reran `uv sync --locked`, Ruff lint and formatting checks, strict mypy (seven files), pytest (115 passing cases, including static and isolated-import dependency checks), package build, documentation links/consistency (135 local targets, 40 anchors), wheel/dependency inspection, and `git diff --check`. All passed. Snapshot comparison confirmed that closeout changed only acceptance/status documentation: domain implementation/tests and ADR 0007's technical scope, decision, and rationale were unchanged. `pyproject.toml`, `uv.lock`, and ADRs 0001–0006 remain unchanged from the foundation commit; no runtime or Kubernetes SDK dependency exists. Git status contains only the accepted Milestone 2 changes and their administrative closeout, with no staged files. Milestone 3 has not started.

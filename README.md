@@ -2,7 +2,7 @@
 
 OpenKube Optimizer is a planned open-source Kubernetes resource analysis tool. It will compare CPU and memory allocations with observed utilization and explain potential inefficiency and resource risks so engineers can make informed decisions.
 
-**Status: v0.1 architecture frozen; Milestone 1 repository foundation complete on 2026-09-28.** D1–D3 are resolved and ADRs 0001–0006 are Accepted. The foundation provides package metadata, an environment/lock, quality tools, and one package smoke test. No application functionality or CLI exists yet. The approved compatibility selections are reference targets, not established OpenKube runtime support. Milestone 2 awaits explicit authorization; staging and the first commit remain pending user review.
+**Status: v0.1 architecture frozen; Milestone 1 complete and committed; Milestone 2 complete and accepted on 2026-09-29.** D1–D3 are resolved and ADRs 0001–0007 are Accepted. The package now includes eleven immutable domain records and pure quantity conversion with synthetic unit tests. No Kubernetes access, analysis engine, CLI, or reporting exists. The approved compatibility selections are reference targets, not established OpenKube runtime support. ADR 0007 was accepted on 2026-09-29; no staging, commit, push, or Milestone 3 work is authorized.
 
 > OBSERVE → ANALYZE → RECOMMEND → HUMAN DECIDES
 
@@ -25,6 +25,7 @@ In-cluster execution, historical Prometheus analysis, numerical resizing recomme
 | --- | --- |
 | [Architecture](docs/architecture.md) | Scope, components, data flow, and review decisions |
 | [Repository design](docs/repository-structure.md) | Planned Python modules and accepted dependency boundaries |
+| [Domain model](docs/domain-model.md) | Implemented immutable facts, quantity conversion, invariants, and Milestone 2 limits |
 | [Security model](docs/security.md) | Permissions, local authentication, and data handling |
 | [Threat model](docs/threat-model.md) | Trust boundaries, threats, and planned verification |
 | [Recommendation methodology](docs/recommendations.md) | Evidence, limitations, and measurable outcomes |

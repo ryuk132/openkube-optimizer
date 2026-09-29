@@ -1,6 +1,6 @@
 # Documentation consistency review
 
-Status: **Final architecture review complete — v0.1 architecture frozen on 2026-09-28.** D1 and D2 are approved; D3 is approved with necessary human-readable names allowed and UIDs internal memory-only. ADRs 0001–0005 are Accepted under the user's explicit authorization following the final review. This ledger records the architecture-review snapshot: implementation was not authorized at that point. The separately authorized Milestone 1 foundation and [reference-target contract](compatibility.md) are now complete; see the current [roadmap](roadmap.md), [development guide](development.md), and Accepted [ADR 0006](adr/0006-python-project-foundation.md). This establishes no Kubernetes runtime support. The historical findings below remain unchanged and are not a second source of operational defaults.
+Status: **Final architecture review complete — v0.1 architecture frozen on 2026-09-28.** D1 and D2 are approved; D3 is approved with necessary human-readable names allowed and UIDs internal memory-only. ADRs 0001–0005 are Accepted under the user's explicit authorization following the final review. This ledger preserves that historical snapshot: implementation was not authorized at that point. Milestone 1 is now complete and committed; separately authorized Milestone 2 records/quantities are complete and accepted on 2026-09-29. See the current [roadmap](roadmap.md), [development guide](development.md), and [domain model](domain-model.md). This establishes no Kubernetes runtime support. Historical findings below remain unchanged; the dated amendment at the end records subsequent decisions and is not a second source of operational defaults.
 
 ## Specification authorities
 
@@ -79,3 +79,16 @@ Milestone 1 will choose supported Python/client/Kubernetes/Metrics API versions,
 **The architecture is frozen for OpenKube v0.1 as of 2026-09-28.** D1–D3 are resolved, ADRs 0001–0005 are Accepted, and the repository is ready for Milestone 1 from an architecture/documentation perspective. Milestone 1 has not started and must wait for explicit user authorization. No code, dependencies, models, schema artifacts, or manifests were created. Documentation checks establish consistency, not runtime correctness or security guarantees.
 
 Future changes must preserve the freeze or explicitly review/supersede it. Client/version/platform/authentication choices, policy calibration, transport/helper enforcement, UID lifetime/output exclusion, and filesystem safety remain implementation risks with staged acceptance tests, not open architecture decisions.
+
+## Milestone 2 approved clarifications
+
+On 2026-09-29 the user approved the domain design and authorized its reduced implementation scope:
+
+| Decision | Resolution and implementation boundary |
+| --- | --- |
+| A — fractional memory | Exact parsing followed by upward whole-byte normalization for nonnegative fractions; preserve existing input/value ceilings. Implemented in pure conversion and synthetic tests; no SDK parsing/integration claim. |
+| B — started confirmation | Future utilization eligibility requires explicit `container_started=True`; false, ABSENT, INVALID, and UNAVAILABLE cannot establish startup. Domain state preservation is implemented; eligibility is not. Accepted [ADR 0007](adr/0007-explicit-container-started.md) records the approved tightening without modifying accepted ADRs. |
+| Scope — AnalysisSettings | Explicitly excluded from Milestone 2. The ten-input configuration contract remains unchanged. Add a settings object only when later analysis/configuration code needs it. |
+| Administrative status | Milestone 1 is complete and committed as `1e52383`; Milestone 2 was accepted on 2026-09-29. No staging, commit, push, or Milestone 3 authorization. |
+
+The initial unreleased `evidence-v1` retains its identifier with an explicit dated amendment: no prior evaluator or emitted reports exist, and numeric gates are unchanged. This is not a claim that the earlier wording already required true. Accepted ADRs 0001–0006 remain byte-for-byte unchanged; ADR 0007 was explicitly accepted on 2026-09-29. The data/report allowlists, permissions, ten inputs, six exits, and no-runtime-dependency boundary remain unchanged. Parser expansion bounds and the implemented record subset are documented in [domain-model.md](domain-model.md), not new user controls.

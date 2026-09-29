@@ -1,6 +1,6 @@
 # v0.1 CLI and acceptance contract
 
-Status: **Accepted architecture contract — frozen on 2026-09-28; not implemented.** No CLI or JSON schema artifact exists yet. This document defines its acceptance criteria; [ADR 0005](adr/0005-cli-and-report-contract.md) records the decision. Numeric defaults/caps are fixed engineering limits to validate, not measured capacity guarantees. Milestone 1 foundation is complete; application work and Milestone 2 remain unauthorized.
+Status: **Accepted architecture contract — frozen on 2026-09-28; not implemented.** No CLI or JSON schema artifact exists yet. This document defines its acceptance criteria; [ADR 0005](adr/0005-cli-and-report-contract.md) records the decision. Numeric defaults/caps are fixed engineering limits to validate, not measured capacity guarantees. Milestone 1 is complete and committed; the authorized [Milestone 2 domain model](domain-model.md) is complete and accepted on 2026-09-29. AnalysisSettings is explicitly deferred and the ten-input contract is unchanged. Milestone 3 is not authorized.
 
 ## Invocation and scope
 
@@ -108,6 +108,8 @@ The total monotonic deadline starts before authentication and includes every ope
 Retry connection resets, timeouts, HTTP 429, and transient HTTP 500/502/503/504 only. Backoff is 1 second then 2 seconds with at most 250 ms jitter, bounded by remaining deadlines. Honor a valid `Retry-After` only if it fits the remaining budget; otherwise report unavailable. Never retry 401/403, certificate validation failure, malformed data, or permanent 4xx responses. SDK implicit retries must not multiply this budget.
 
 Quantity ceilings: 1,000,000 decimal CPU cores and 2^60 memory bytes per field; at most 128 characters per quantity and 1,024 UTF-8 bytes per retained identifier. These reject unreasonable inputs; they are not Kubernetes resource-sizing advice. Reject before expensive parsing. Implementation acceptance must demonstrate transport byte/deadline enforcement with the official client, including chunked/compressed responses; `Content-Length` or an object count after deserialization alone is insufficient. If the chosen client cannot enforce these controls, revise the adapter design before supporting collection.
+
+The user-approved Milestone 2 normalization rounds valid nonnegative fractional memory upward after exact parsing, with the memory ceiling enforced on the result. CPU remains exact Decimal cores. The pure [quantity parser](domain-model.md#exact-quantity-conversion) bounds explicit exponent magnitude before expansion; this implementation guard adds no CLI input or report-limit key. Transport controls remain unimplemented.
 
 These additional fixed parser limits are required `configuration.limits` keys: `max_cpu_cores` (decimal string `1000000`), `max_memory_bytes` (integer 1152921504606846976), `max_quantity_characters` (integer 128), `max_identifier_bytes` (integer 1024). They are not user inputs. Backoff constants are implementation policy described above, not a configurable retry framework.
 

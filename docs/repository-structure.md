@@ -1,8 +1,8 @@
 # Planned repository and Python modules
 
-Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 repository foundation complete.** Application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. Milestone 2 and staging/committing await explicit authorization.
+Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0007 was also accepted on 2026-09-29; staging, committing, pushing, and Milestone 3 are not authorized.
 
-## Current foundation
+## Current implementation
 
 ```text
 openkube-optimizer/
@@ -13,12 +13,20 @@ openkube-optimizer/
 ├── LICENSE
 ├── pyproject.toml
 ├── uv.lock
-├── src/openkube_optimizer/__init__.py
-├── tests/unit/test_package.py
-└── docs/                           # architecture, development, reference targets, and ADRs
+├── src/openkube_optimizer/
+│   ├── __init__.py
+│   └── domain/
+│       ├── __init__.py
+│       ├── models.py
+│       └── quantities.py
+├── tests/unit/
+│   ├── test_package.py
+│   ├── test_domain_models.py
+│   └── test_quantities.py
+└── docs/                           # includes domain-model.md and Accepted ADR 0007
 ```
 
-The local `.venv`, tool caches, and `dist/` are ignored. No fixtures directory, CLI entry point, application models, or runtime dependencies exist. The initializer has no executable application behavior; the single smoke test exercises the installed package and its distribution metadata.
+The local `.venv`, tool caches, and `dist/` are ignored. No fixtures directory, CLI entry point, or runtime dependencies exist. Initializers have no I/O. Tests cover installed-package metadata and pure domain invariants/conversion. No collection, evidence evaluation, or reporting behavior exists.
 
 ## Future repository plan
 
@@ -84,8 +92,8 @@ openkube-optimizer/
 | `cli.py` | Required local context/namespaces, report mode/output, fixed exit/status contract |
 | `config.py` | Ten-field accepted configuration contract, validated thresholds/scope, fixed versioned policy constants under D1; no configuration framework/fallback/discovery |
 | `logging_config.py` | Structured operational events; exclude bodies, credentials, and arbitrary metadata |
-| `domain/models.py` | Inventory, samples, evidence quality, findings, recommendations, run summary |
-| `domain/quantities.py` | Validated Kubernetes quantity conversion without float rounding surprises |
+| `domain/models.py` | Milestone 2: eleven closed immutable identity/inventory/metric fact records, field states, and fixed version identifiers. Evidence results, findings, recommendations, and run summaries remain deferred until their producing milestones. AnalysisSettings is explicitly outside Milestone 2. |
+| `domain/quantities.py` | Implemented bounded pure conversion: exact Decimal CPU, integer memory with upward fractional-byte normalization; no float or SDK dependency |
 | `collection/kubernetes.py` | Four fixed namespaced list endpoints; transport caps, deadlines, pagination, sanitized errors, prompt raw-reference release |
 | `collection/projection.py` | Exact data-contract allowlist; no raw API objects beyond the adapter boundary |
 | `collection/ownership.py` | UID-based owner traversal with explicit unresolved outcomes |

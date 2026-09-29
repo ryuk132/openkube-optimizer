@@ -8,7 +8,7 @@ Status: **Approved Milestone 1 reference contract — 2026-09-28.** These select
 | --- | --- |
 | Initial reference / planned validation target | A user-approved combination selected for future implementation and validation; not a support guarantee |
 | Documented upstream compatibility | An upstream project's version mapping or capability statement; not an OpenKube test result |
-| Locally tested compatibility | A specific combination and scope that passed recorded OpenKube checks; currently repository foundation only |
+| Locally tested compatibility | A specific combination and scope that passed recorded OpenKube checks; currently foundation and pure domain units only, not Kubernetes runtime integration |
 | Not yet validated | Required OpenKube application, authentication, filesystem, or integration checks have not passed or have not run |
 
 Use these terms in release and development documentation. Do not describe a selected target as a fully supported runtime environment. A portable wheel, a dependency's Python classifier, or a working kubectl session does not establish OpenKube runtime compatibility.
@@ -19,7 +19,7 @@ Use these terms in release and development documentation. Do not describe a sele
 | --- | --- | --- |
 | Kubernetes | Minor 1.36; initial reference patch **1.36.4** | Not yet validated; no cluster accessed |
 | Official Kubernetes Python client | **36.0.3** | Not installed; no SDK integration tested |
-| CPython | **3.13.15** | Repository foundation validated; Kubernetes runtime not tested |
+| CPython | **3.13.15** | Foundation and pure domain unit checks pass; Kubernetes runtime not tested |
 | Metrics Server | **0.9.0** | Not yet validated; operator-managed reference implementation |
 | Metrics API | **metrics.k8s.io/v1beta1** | Not yet validated; fixed namespaced PodMetrics endpoint planned |
 | Development reference | **macOS 15 / x86_64** | Foundation checks passed on Darwin 24.6.0 / x86_64; host reported macOS 15.7.9 during review; no application-runtime claim |
@@ -64,7 +64,7 @@ The initial metrics reference is Metrics Server 0.9.0 serving `metrics.k8s.io/v1
 
 The operator must provide a working aggregation layer, the Metrics API service, valid certificate trust, kubelet authentication/authorization, and the necessary cluster networking. TLS verification remains enabled; disabling kubelet certificate validation is not the reference configuration. OpenKube does not install or configure Metrics Server.
 
-CPU describes average usage over the reported window; memory is a timestamped working-set estimate. Metrics Server's collection cadence is not OpenKube's polling interval and does not guarantee fresh data at each poll. **Repeated Metrics API responses must not count as distinct observations merely because OpenKube polled again.** Deduplication, conflicting duplicates, timestamps/windows, coverage, startup, gaps, shortened runs, and abstention remain governed by the unchanged [evidence-v1 contract](evidence-eligibility.md).
+CPU describes average usage over the reported window; memory is a timestamped working-set estimate. Metrics Server's collection cadence is not OpenKube's polling interval and does not guarantee fresh data at each poll. **Repeated Metrics API responses must not count as distinct observations merely because OpenKube polled again.** Deduplication, conflicting duplicates, timestamps/windows, coverage, startup, gaps, shortened runs, and abstention remain governed by [evidence-v1](evidence-eligibility.md), including its explicitly approved 2026-09-29 startup clarification. Local domain unit tests do not validate Metrics API or SDK integration.
 
 Preserve missing-metrics/partial-failure behavior from the [CLI contract](cli-contract.md#exit-codes-and-report-status): retain independently valid inventory/configuration findings, never substitute zero usage, and mark required unavailable utilization evidence incomplete. Empty or known inapplicable inventories retain their existing exceptions. No history, safe resize values, or accurate monitoring guarantee is introduced. Other metrics providers and API versions remain outside the initial reference matrix.
 
@@ -79,4 +79,4 @@ Research reviewed for the approved 2026-09-28 reference selection:
 
 Before any runtime-support claim, record exact versions/platform/filesystem/authentication combinations and passing application tests. Milestone 3 must verify SDK field visibility, the restricted authentication profile, TLS, four-endpoint RBAC and denial cases, transport/deadline bounds, and sanitized failures. Milestone 4 must verify metrics/evidence behavior. Milestone 6 must verify report safety, filesystem behavior, and exit semantics. Remaining packaging/release checks stay in their roadmap milestones. Do not waive any of these because upstream projects document compatibility.
 
-Milestone 1 selects and documents reference targets; it does not perform those later integration tests. No SDK/runtime dependency or application behavior is authorized by this contract. Milestone 2 requires separate explicit authorization.
+Milestone 1 selects and documents reference targets; it does not perform those later integration tests. No SDK/runtime dependency or application behavior is authorized by this reference contract. Milestone 2 domain records and pure conversion were subsequently authorized separately and were accepted on 2026-09-29; their synthetic tests do not validate any Kubernetes/authentication/metrics combination. Milestone 3 is not authorized.
