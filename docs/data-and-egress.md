@@ -1,0 +1,147 @@
+# v0.1 data and egress contract
+
+Status: **Accepted architecture contract — frozen on 2026-09-28; not implemented.** The user permits unavoidable transient API-object exposure; retention remains allowlist-only. Contract version: `data-v1`. D3 permits necessary allowlisted resource names in potentially sensitive reports; Kubernetes UIDs are memory-only internal data. The [security model](security.md), [evidence contract](evidence-eligibility.md), and [CLI contract](cli-contract.md) reference this document as the field-level authority. Milestone 1 foundation is complete; application work and Milestone 2 remain unauthorized.
+
+## Data OpenKube may collect
+
+Only namespace-scoped list responses for Pods, Deployments, ReplicaSets, and PodMetrics in the explicitly supplied namespaces. From those responses, extract only the exact fields below, plus validated configuration and tool-generated evidence. Authentication material may be read from trusted local client configuration solely to authenticate, not as analysis data.
+
+“Collect” here distinguishes deliberate extraction/retention from unavoidable receipt: the official client may receive/deserialise entire allowed-resource responses, including unrequested sensitive fields. That exception permits only transient transport/adapter memory needed by the client. It does not authorize deliberate extraction of those fields or broader API requests.
+
+## Data OpenKube must not collect
+
+Never request Secrets, ConfigMaps, Namespace objects, nodes, events, logs, traces, application traffic, RBAC resources, or any unlisted resource/subresource. Never invoke exec, attach, port-forward, Kubernetes proxy, token creation, impersonation, or mutation operations. HPA/VPA, LimitRange, and ResourceQuota collection are outside v0.1.
+
+Do not extract labels, annotations, environment values, commands/arguments, images or image credentials, volume configuration/content, application payloads, or free-form status messages from received objects. Application analysis inputs are limited to trusted client/authentication configuration; no arbitrary local manifest/log/data-file ingestion. Normal runtime/library loading, OS trust/DNS configuration, and output filesystem operations are necessary infrastructure, not analyzed inputs. Credential helpers are a separate trusted executable boundary, not an arbitrary-file-input feature.
+
+## Exact projection allowlist
+
+Paths use Kubernetes JSON field names, with `[]` meaning each item. Each map is closed: omitted paths and unknown keys must not enter internal records. Normalize quantities/timestamps/enums immediately. Do not retain a full parent map to obtain an allowed child. Presence checks listed below produce only the stated boolean or count, never copies of excluded content.
+
+| Source | Allowed paths and projection |
+| --- | --- |
+| Transport/list envelope | HTTP status mapped to a fixed error code; list `metadata.continue` and `metadata.resourceVersion` for pagination/consistency only. Parse only the `Retry-After` response header into a bounded retry delay; immediately discard its raw text. Pagination tokens/delays remain adapter-local and never enter reports/logs. Do not retain whole headers or bodies. |
+| Pod, ReplicaSet, Deployment metadata | `metadata.namespace`, `name`, `uid`, `creationTimestamp`, `resourceVersion`; `deletionTimestamp` becomes `deleting` boolean. Only Pod/ReplicaSet controller entries in `metadata.ownerReferences[]`: `apiVersion`, `kind`, `name`, `uid`, `controller`. Multiple controller entries yield unresolved ownership. |
+| Pod allocation | `spec.containers[].name`; each container's `resources.requests.cpu`, `resources.requests.memory`, `resources.limits.cpu`, `resources.limits.memory`. Missing and explicit zero are distinct. |
+| Pod support checks | Presence of `spec.resources` becomes `pod_resources_present`; lengths of `spec.initContainers` and `spec.ephemeralContainers` become counts; any `spec.initContainers[].restartPolicy == Always` becomes `restartable_init_present`; presence of `spec.overhead` becomes `overhead_present`. No names/content from special containers are retained. |
+| Pod lifecycle | `status.phase`; only the `Ready` entry of `status.conditions[]`: `type`, `status`, `lastTransitionTime`; `status.containerStatuses[].name`, `ready`, `started`, `restartCount`, `state.running.startedAt`. State membership (`running`, `waiting`, `terminated`) becomes an enum; no waiting/termination messages, reasons, IDs, or exit details are retained. |
+| Pod allocation status | `status.resize` as a validated enum; `status.containerStatuses[].allocatedResources.cpu`, `.memory`; `.resources.requests.cpu`, `.memory`, `.resources.limits.cpu`, `.memory`. Presence of `.allocatedResourcesStatus` becomes a conservative `resource_status_present` flag. Only Pod conditions with type `PodResizePending` or `PodResizeInProgress`: retain type/status, never reason/message. Unknown or inconsistent resize/allocation states make the affected allocation unsupported. |
+| Deployment template | `spec.template.spec.containers[].name` and the four CPU/memory request/limit paths above; the same support-check presence/count projections as Pod spec, applied to `spec.template.spec`. No template metadata. |
+| Deployment rollout | `metadata.generation`, `spec.replicas`, `status.observedGeneration`, `status.replicas`, `status.updatedReplicas`, `status.availableReplicas`, `status.unavailableReplicas`. No status conditions/messages. Normalize API-defined absent zero counters only after version-specific contract tests; otherwise mark rollout state unknown. |
+| ReplicaSet | Metadata/owner paths above only. No ReplicaSet spec, template, or status is projected. |
+| PodMetrics | `metadata.namespace`, `metadata.name`, optional `metadata.uid`; `timestamp`, `window`; `containers[].name`, `containers[].usage.cpu`, `.memory`. Treat UID as optional corroboration, never assume it exists. No other metadata. |
+
+Read response `apiVersion` and `kind` only to validate the expected endpoint/schema; retain the fixed source/schema identifier, not arbitrary content. Unknown fields are ignored; an unsupported tested-version contract or unknown value in a required eligibility field causes abstention. SDK loss of required newer fields must be detected through version/fixture tests, not treated as absence of a feature.
+
+Derived internal values are limited to normalized CPU cores/memory bytes; allocation/template fingerprints of these allowlisted values; resolved ownership; lifecycle/rollout/support flags; timestamps and sample provenance; quality/coverage counters; fixed error/abstention codes; rule results; and static tool-authored explanations. Do not hash excluded fields or use arbitrary metadata in fingerprints.
+
+## Data OpenKube may retain in memory
+
+- Raw response buffers/SDK objects only for the minimum technical retrieval, validation, and immediate projection lifetime. Project one bounded response/page at a time. Release raw objects and temporary references before subsequent analysis; never cache them.
+- Client-held kubeconfig, credential/certificate material, and helper results only as necessary for authentication. Keep them outside domain/report records. Disable client kubeconfig persistence where supported; helper-owned caches are disclosed below.
+- Allowlisted domain records, bounded observations, derived evidence, and the bounded report for this run only. No historical store, cross-run cache, or raw response spool.
+- Kubernetes UIDs, including owner references and any UID mappings used for identity/deduplication, only in internal memory for as long as analysis needs them. Release these references promptly once no longer needed and no later than run teardown, including failure/interruption. Never log, report, persist, spool, or cache UIDs on disk. Do not encode/hash UIDs into output identifiers. Report projection must remove all internal UID fields before serialization, temporary-file creation, or error formatting.
+- Sanitized error records only. Catch client errors at the adapter boundary without formatting/serializing their bodies, headers, raw objects, or exception chains. Do not retain traceback frames containing raw responses or expose SDK exceptions through domain failures.
+
+Projection reduces retention and exposure; it does **not** guarantee that sensitive fields never temporarily exist in process memory. Releasing Python references does not guarantee physical memory erasure, prevent swap, or protect a compromised host/client. OpenKube must not create crash dumps or debugging artifacts containing process state.
+
+## Data OpenKube may write to reports
+
+This section is the accepted conceptual output structure, not an implemented model or schema artifact. Every listed key must be present in its object; explicitly nullable fields use null and collections use empty arrays when unavailable. No unlisted/extension maps, dynamic metadata, credential configuration, free-form API strings, or Kubernetes UIDs are permitted. Failure/interruption reports use the same structure with unavailable results null/empty. Initial schema `1.0.0` is frozen for implementation; no released schema is being changed.
+
+Only these human-readable Kubernetes identifiers are reportable: namespace name, Deployment name, Pod name when needed to identify per-Pod evidence/diagnostics, and regular container name. ReplicaSet names are internal ownership details and are not needed in v0.1 output. The current per-Pod inventory/coverage/finding records require Pod names; Deployment summaries do not add Pod names. Names can contain sensitive organizational information, so every report is a potentially sensitive artifact. No PII-free or anonymous-output guarantee is made.
+
+Primitive types: `text` is a validated identifier or static tool-authored text as specified; `time` is a UTC RFC3339 timestamp; `count` is a nonnegative integer; `decimal` is an exact decimal string without NaN/Infinity; `seconds` is a nonnegative decimal string for measured durations, with integers for configured durations. Booleans are JSON booleans. Null is never equivalent to zero. CPU quantities are decimal cores; memory quantities are integer bytes. Rule IDs are exactly the six IDs in [recommendations](recommendations.md#rules), all initially version `1.0.0`.
+
+### Top-level structure and analysis metadata
+
+| Required root field | Type / contents |
+| --- | --- |
+| `schema_version` | Text, initially `1.0.0`; compatibility policy in CLI contract |
+| `tool_version` | Text, actual released/build version; never fabricate one in examples |
+| `data_policy_version` | Text, `data-v1` |
+| `evidence_policy_version` | Text, `evidence-v1` |
+| `run` | Analysis/timing/status object below |
+| `scope` | Requested and observed namespace scope below |
+| `configuration` | Sanitized effective rules/evidence/limits below; not invocation settings |
+| `sources` | Array of source-availability records |
+| `counts` | Closed summary count object |
+| `inventory` | Array of per-subject latest valid allocation records |
+| `deployments` | Array of grouping/coverage summaries; no resize target |
+| `coverage` | Array of per-subject/resource evidence summaries, including no-finding/abstained cases |
+| `findings` | Array of independently justified findings |
+| `recommendations` | Array of investigation actions referencing findings |
+| `skipped` | Array of unsupported/inapplicable/insufficient-evidence records |
+| `errors` | Array of sanitized source/run failures |
+| `limitations` | Array of closed limitation codes below |
+| `human_review_required` | Boolean, always true |
+
+`run` keys: `mode` (`snapshot` or `observation`); `status` (`complete`, `incomplete`, `failed`, `interrupted`); `started_at`/`ended_at` (time); `elapsed_seconds` (seconds, monotonic elapsed); `observation_started_at`/`planned_observation_end_at`/`actual_observation_end_at`/`closure_completed_at` (nullable time); `planned_observation_seconds`/`actual_observation_seconds` (nullable integer/seconds respectively); `termination_reason` (`COMPLETED`, `SOURCE_FAILURE`, `INSUFFICIENT_EVIDENCE`, `AUTHENTICATION_FAILED`, `TLS_FAILED`, `NO_USABLE_INVENTORY`, `DEADLINE_EXCEEDED`, `LIMIT_EXCEEDED`, `INTERNAL_ERROR`, `INTERRUPTED`). Observation times/durations and closure are null for snapshot; before observation starts, actual duration is null and planned duration remains configured. Actual observation duration is clipped to `[0,D]`; closing inventory does not extend it. If several reasons apply, status precedence comes first, then choose limit/deadline, source failure, insufficient evidence in that order; `errors`/`skipped` preserve all causes.
+
+`scope` keys: `requested_namespaces`, `completed_namespaces`, `failed_namespaces` (arrays of allowed namespace identifiers). Completed/failed partition the requested list by whether all required inventory passes for that namespace completed, not by metrics eligibility. Unvisited or partially inventoried namespaces belong to failed. A namespace may have usable earlier inventory while also belonging to failed. No kubeconfig context, cluster alias, server address, or local path is reportable.
+
+`configuration` has exactly three objects/arrays:
+
+- `rules`: six records, each with `rule_id`, `rule_version`, `threshold` (nullable decimal), `comparison` (`absent`, `lt`, `gt`, `gte`), `applicable_modes` (array of `snapshot`/`observation`). Absence rules: null/absent; request-below-usage: `1.00`/gt; the two overprovisioning rules: actual configured ratio/lt, observation only; memory headroom: actual configured ratio/gte. No arbitrary rule keys.
+- `evidence`: exactly the eight fixed keys/types in the [evidence defaults table](evidence-eligibility.md#configuration-and-reporting).
+- `limits`: exactly the fixed/derived keys in the [CLI operational table](cli-contract.md#operational-limits-and-timeouts), plus `baseline_seconds`, `final_inventory_seconds`, `max_cpu_cores`, `max_memory_bytes`, `max_quantity_characters`, `max_identifier_bytes` defined there. No other keys. All are integer policy values except decimal-string `max_cpu_cores`; `run_deadline_seconds` is the integer derived for the selected mode.
+
+### Scope, source, inventory, and coverage records
+
+`run.ended_at`/`elapsed_seconds` are measured when analysis and the report contents are finalized, before delivery begins; they cannot include future serialization/write time. The total execution deadline still includes subsequent delivery. A failure status uses its fatal cause as termination_reason (internal, authentication, TLS, or no usable inventory in CLI precedence order); interrupted uses INTERRUPTED; complete uses COMPLETED; incomplete prioritizes limit/deadline, then source failure, then insufficient evidence. All secondary causes remain in errors/skips.
+
+| Object | Exact fields, types, and semantics |
+| --- | --- |
+| Subject | `namespace`, `pod_name`, `container_name` (necessary human-readable names); `deployment_name` (nullable name when ownership is unresolved); `pod_created_at` (time). Creation time is existing allowlisted evidence used to distinguish reused Pod names without exposing UIDs. No ReplicaSet name, UID, label, or additional metadata. |
+| Allocation | `cpu_request_cores`, `cpu_limit_cores` (nullable decimal); `memory_request_bytes`, `memory_limit_bytes` (nullable count). Null means absent/unavailable as distinguished by quality codes, never zero. |
+| `sources[]` | `source` (`pods`, `deployments`, `replicasets`, `pod_metrics`); `api_version` (nullable fixed tested API version identifier); `namespace` (identifier); `status` (`available`, `partial`, `failed`, `not_required`, `not_attempted`); `error_codes` (array from CLI error vocabulary). Exactly one record per requested namespace/source; partial means some successful and some exhausted-failure calls; failed means attempted with none successful. Metrics is not_required if no supported subject needs utilization. Recovered retries within one successful request do not create a source failure. |
+| `inventory[]` | `subject`; `observed_at` (time); `pod_allocation`, `template_allocation` (allocation, template nullable); `support_codes` (quality-code array); `template_differs` (nullable boolean). One latest valid record per internally resolved subject; historical finding allocations stay in their own evidence. Pod creation time is in subject, not duplicated. |
+| `deployments[]` | `namespace`, `deployment_name` (names); `deployment_created_at` (time from the existing metadata allowlist, distinguishes name reuse); `observed_replica_count`, `eligible_replica_count`, `skipped_replica_count` (count); `unstable`, `heterogeneous_allocations` (boolean). Deduplicate using internal memory-only identities; emit counts and names/timestamp, never internal keys. A replica is eligible if every applicable rule on its supported regular containers was evaluable for the mode; otherwise skipped. Counts partition observed replicas. No peak-hiding averages. |
+| `coverage[]` | `subject`; `resource` (`cpu`, `memory`); `scheduled_count`, `valid_count`, `missing_count`, `duplicate_count`, `rejected_count`, `minimum_required_count` (count); `coverage_fraction` (nullable decimal); `interval_start`, `interval_end`, `first_received_at`, `last_received_at` (nullable time); `max_observed_gap_seconds` (nullable seconds); `quality_codes` (array). One record for each supported or evidence-uncertain regular-container subject/resource; known unsupported subjects use skips. Minimum required count is 1 for snapshot or `ceil(0.90*N)` for observation; this count alone never proves eligibility. Intervals enclose actual valid resource samples, not implied continuous history. |
+
+Coverage records use the exact slot partition in the evidence contract, including invalidation/recomputation after conflicts. A late-created subject has the full N denominator. Without any valid sample, intervals/receipt times are null, coverage is zero if scheduled_count > 0, and maximum gap is the actual elapsed observation interval (null if observation never began). Coverage is null when scheduled_count is zero. In a shortened run, elapsed gap ends at the actual stop, but future planned slots remain missing and `SHORTENED_RUN` independently blocks whole-run candidates.
+
+`counts` keys are exactly: `namespaces_requested`, `namespaces_completed`, `namespaces_failed`, `deployments_discovered`, `deployments_eligible`, `containers_evaluated`, `containers_skipped`, `scheduled_slots`, `valid_slots`, `missing_slots`, `duplicate_slots`, `rejected_slots`, `findings`, `recommendations`, `source_failures` (all count). Namespace counts are lengths of scope lists; Deployment counts use unique UIDs, with eligible meaning at least one eligible replica. Container counts use unique subjects; evaluated means at least one applicable rule evaluated, while skipped means at least one skipped rule, so they may overlap. Slot counts sum `coverage` records across CPU and memory; duplicate/rejected are subsets of missing, not extra samples. Source failures count namespace/source records with status partial/failed, not request attempts. Findings/recommendations count their arrays. No inferred global cross-run totals.
+
+All UID-based counting/correlation happens internally in memory. No UID value or mapping is a report field. Output names plus creation/observation times describe evidence, not authoritative Kubernetes ownership: identity resolution still uses internal UIDs. If exported names/times cannot distinguish two internal subjects, keep their records separate and disclose `IDENTITY_AMBIGUOUS`; do not merge them by name or expose a UID to resolve the ambiguity. Tool-generated finding IDs are run-local sequence identifiers, never Kubernetes UIDs or UID-derived hashes. This is ordinary finding linkage, not pseudonymized resource reporting.
+
+### Findings, evidence, actions, and partial failures
+
+| Object | Exact fields, types, and semantics |
+| --- | --- |
+| `findings[]` | `id` (unique run-local sequence identifier, never a Kubernetes UID or UID-derived value); `rule_id`, `rule_version`; `subject`; `resource` (`cpu`, `memory`); `severity` (`INFO`, `WARNING`); `threshold` (nullable decimal); `comparison` (`absent`, `lt`, `gt`, `gte`); `evidence` (below); `limitations` (limitation-code array). Headroom rule is WARNING, others INFO; severity is a rule label, not a production-safety guarantee. |
+| Finding `evidence` | `source` (`pods`, `pod_metrics`); `unit` (`cores`, `bytes`); `interval_start`, `interval_end`, `first_trigger_at`, `last_trigger_at` (time); `sample_count` (count); `observed_allocation` (allocation); `sampled_min`, `sampled_max` (nullable decimal cores/count bytes according to unit); `ratio` (nullable decimal); `quality_codes` (array); `window_min_seconds`, `window_max_seconds` (nullable seconds, CPU only). It references whole-run coverage through the finding's subject/resource, not duplicate ambiguous counters. One execution/allocation segment only; configuration findings have sample_count 0, null usage/ratios/windows, and inventory time as interval/trigger time. |
+| `recommendations[]` | `finding_id` (existing finding ID); `action_code` (same six-rule vocabulary); `action`, `confidence_reason` (static rule-specific tool text); `confidence` (`LOW`); `human_review_required` (true). Exactly one investigation action per finding, no numeric target, shell command, or patch. Direct observation quality does not establish confident sizing advice. |
+| `skipped[]` | `subject` (nullable subject); `namespace` (allowed identifier); `rule_id` (nullable rule ID for source/subject-wide skip); `resource` (`cpu`, `memory`, or null); `reason_code` (closed evidence vocabulary); `count` (positive integer). One aggregated record per distinct subject/namespace/rule/resource/reason; count affected planned slots, or 1 for a subject/configuration-level skip. Reasons may overlap; never sum this array as unique skipped containers. |
+| `errors[]` | `code` (CLI error vocabulary); `stage` (`authentication`, `baseline`, `inventory`, `metrics`, `closure`, `analysis`, `output`); `namespace` (nullable allowed identifier); `resource_kind` (`pods`, `deployments`, `replicasets`, `pod_metrics`, or null); `retryable` (boolean: category eligible for bounded retries, not an instruction to continue); `attempts` (count); `occurrences` (positive count). Aggregate identical code/stage/namespace/resource_kind/retryable tuples; sum attempts and occurrences. No API-provided messages, HTTP bodies, paths, URLs, or tracebacks. |
+
+For utilization findings, min/max refer only to the finding's validated segment evidence. `ratio` uses its maximum usage and the applicable positive request/limit; first/last trigger timestamps refer to actual qualifying samples. Whole-run candidates use the full eligible stable run; their first/last trigger times are its first/last accepted sample times. A finding cannot survive invalidation of all supporting samples. Plain report structure or LOW confidence never makes invalid evidence acceptable.
+
+The closed limitation vocabulary is `RECENT_SAMPLES_ONLY`, `NO_SAFE_RESIZE_TARGET`, `AUTOSCALING_UNCHECKED`, `POLICIES_UNCHECKED`, `NON_TRANSACTIONAL_READS`, `NO_COMPLETE_POD_FOOTPRINT`, `SENSITIVE_IDENTIFIERS`, `HUMAN_REVIEW_REQUIRED`, `UNSUPPORTED_SUBJECTS`, `INCOMPLETE_EVIDENCE`, `SOURCE_FAILURES`, `DEPLOYMENT_UNSTABLE`. The first eight are always present at root; add the others when applicable. Finding limitations include relevant codes, always RECENT_SAMPLES_ONLY for utilization and HUMAN_REVIEW_REQUIRED. Terminal rendering uses static code-to-text templates and escapes identifiers; it cannot expose fields absent from this allowlist.
+
+**D3 approved on 2026-09-28:** necessary allowlisted human-readable names may appear in reports. Kubernetes UIDs are internal memory-only and must never appear in reports, logs, or persistent artifacts. Names themselves can contain sensitive organizational information; reports must be treated as potentially sensitive despite excluding raw objects and prohibited fields. No pseudonymization in v0.1. Privacy-enhanced reporting requires a future ADR and demonstrated use case. Use synthetic examples only.
+
+## Data OpenKube must never write to reports
+
+Raw objects or responses; Kubernetes UIDs or UID-derived values; ReplicaSet names; headers; kubeconfigs or their paths/context aliases; API/proxy URLs; tokens/passwords/certificates/private keys; helper commands/output; environment variables; labels/annotations; images; commands/arguments; volumes; application content/logs; free-form status or exception text; tracebacks; pagination/resource-version tokens; internal fingerprints; unlisted lifecycle details; or raw sample series. UID prohibitions also apply to stdout, stderr, exposed errors, temporary reports, saved reports, caches, and debugging artifacts. Also prohibited: production-safe resize targets, monetary savings, reclaimable infrastructure capacity, or reliability-improvement claims.
+
+Operational stderr logs have an even smaller allowlist: timestamp, level, fixed event/error code, stage, counts, attempt number, and elapsed duration. No object names, namespace names, paths, endpoint addresses, or untrusted strings. Detailed infrastructure identity belongs only in the explicitly requested report (including the chosen terminal report).
+
+## Expected network communication
+
+OpenKube's adapter sends authenticated HTTPS list requests to the selected kubeconfig API server for the four permitted namespaced resources. Requests necessarily disclose authentication identity/material appropriate to the method, namespace/resource paths, pagination parameters, and normal connection/client metadata to that endpoint. TLS certificate and hostname verification are mandatory; reject insecure or plain-HTTP server configurations. PodMetrics uses the API server's aggregated API, never direct kubelet/node access.
+
+There is no OpenKube telemetry, analytics, report upload, remote AI processing, update check, listening server, or arbitrary URL-fetch feature. The API server and metrics provider can themselves communicate inside the cluster; those existing services are outside this local process's egress boundary.
+
+## Potential indirect network communication
+
+The [approved initial authentication profile](compatibility.md#planned-authentication-profile) excludes helpers and transport proxies. Their entries below document trust boundaries for future review, not enabled workflows or established runtime support. Only the two approved authentication forms with explicit CA files and verified HTTPS are planned validation targets.
+
+| Mechanism | Information/boundary |
+| --- | --- |
+| DNS | The configured resolver may receive API, proxy, and authentication-service hostnames plus connection metadata. |
+| Kubeconfig authentication/credential helpers | Trusted executables may contact identity/cloud services, send their required authentication data, and maintain their own local credential caches. Their behavior is outside OpenKube's no-telemetry guarantee. No arbitrary/untrusted kubeconfig is supported. |
+| Configured transport proxies | Supported client/kubeconfig/environment proxy settings may route traffic through an operator-managed intermediary; it sees destination/connection metadata and may see more if TLS is terminated there. Kubernetes proxy subresource/functionality remains prohibited; a transport proxy is a distinct mechanism. |
+| Operator-controlled output capture | Shell redirection, CI logs, synchronized directories, backup agents, and manual sharing can move reports off-host. OpenKube cannot identify every synchronized/network-backed filesystem and does not claim to prevent these transfers. |
+
+Validate actual proxy inheritance, authentication-helper timeouts, credential refresh/persistence, and TLS enforcement against the pinned client before collection is accepted. If a required runtime bound cannot be enforced, that authentication/client combination is unsupported until reviewed. Installation/dependency downloads are separate operator actions, not analysis-run egress.

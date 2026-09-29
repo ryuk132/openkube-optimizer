@@ -1,0 +1,53 @@
+# OpenKube Optimizer
+
+OpenKube Optimizer is a planned open-source Kubernetes resource analysis tool. It will compare CPU and memory allocations with observed utilization and explain potential inefficiency and resource risks so engineers can make informed decisions.
+
+**Status: v0.1 architecture frozen; Milestone 1 repository foundation complete on 2026-09-28.** D1–D3 are resolved and ADRs 0001–0006 are Accepted. The foundation provides package metadata, an environment/lock, quality tools, and one package smoke test. No application functionality or CLI exists yet. The approved compatibility selections are reference targets, not established OpenKube runtime support. Milestone 2 awaits explicit authorization; staging and the first commit remain pending user review.
+
+> OBSERVE → ANALYZE → RECOMMEND → HUMAN DECIDES
+
+OpenKube will be read-only. It will never automatically change workloads. Recommendations require human review and are not guarantees of safe resource reductions or infrastructure savings.
+
+## Frozen v0.1 scope
+
+- A local-only Python CLI for one explicitly selected cluster context per run, using the official Kubernetes client.
+- Users must name every namespace to analyze; no automatic namespace discovery or namespace-list permission.
+- Namespace-scoped discovery of Deployments, Pods, and containers; ReplicaSets provide ownership mapping.
+- CPU/memory requests and limits, paired with recent Metrics API utilization.
+- Explainable findings and investigation recommendations in terminal and JSON reports.
+- Explicit handling of missing data, unsupported workloads, and incomplete analysis.
+
+In-cluster execution, historical Prometheus analysis, numerical resizing recommendations, APIs, dashboards, and workload mutation are outside this release. Findings never establish production-safe resource values, monetary savings, reclaimable infrastructure capacity, or reliability improvements. See the [scope and architecture](docs/architecture.md) and [recommendation methodology](docs/recommendations.md).
+
+## Read the architecture
+
+| Document | Purpose |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Scope, components, data flow, and review decisions |
+| [Repository design](docs/repository-structure.md) | Planned Python modules and accepted dependency boundaries |
+| [Security model](docs/security.md) | Permissions, local authentication, and data handling |
+| [Threat model](docs/threat-model.md) | Trust boundaries, threats, and planned verification |
+| [Recommendation methodology](docs/recommendations.md) | Evidence, limitations, and measurable outcomes |
+| [Evidence eligibility](docs/evidence-eligibility.md) | Startup, identity, lifecycle, coverage, and abstention contract |
+| [Data and egress contract](docs/data-and-egress.md) | Exact projection/report allowlists, retention, and network boundaries |
+| [CLI acceptance contract](docs/cli-contract.md) | Exit codes, partial success, schema versions, limits, and safe output |
+| [Consistency review](docs/consistency-review.md) | Reconciled definitions, D1–D3 resolution, and architecture freeze |
+| [Roadmap](docs/roadmap.md) | Incremental milestones and acceptance checks |
+| [Reference targets](docs/compatibility.md) | Approved version/platform/authentication targets and actual validation limits |
+| [ADRs](docs/adr/README.md) | Major decisions, alternatives, and trade-offs |
+
+## Local development
+
+Use CPython 3.13.15 and uv. The [development guide](docs/development.md) explains environment setup, dependency locking, quality checks, and package validation. The package currently has no runtime dependencies or command-line entry point. Development installation does not provide a working Kubernetes analyzer.
+
+## Security and project maturity
+
+Kubernetes Secrets, ConfigMaps, and application logs must never be requested. Transient full-object exposure in process memory is permitted only when technically required by the official client. Immediate allowlist projection reduces retention and exposure; it cannot guarantee that sensitive fields never temporarily enter memory. Raw objects must never reach persistence, logs, exceptions, or reports. Use a dedicated least-privilege identity; OpenKube cannot contain privileges already held by supplied credentials. [The security model](docs/security.md#data-minimization-and-its-limit) explains this boundary.
+
+The accepted contract has ten configuration inputs, fixed versioned safety/evidence policies, and exits 0/2/3/4/5/130. Reports may include necessary allowlisted namespace, Deployment, Pod, and container names; names can contain sensitive organizational information, so reports are potentially sensitive artifacts. Kubernetes UIDs remain internal memory-only: never reported, logged, or persisted. No pseudonymization in v0.1. Architecture acceptance does not authorize implementation.
+
+Do not contribute credentials, kubeconfigs, production manifests, real reports, or customer data. Use synthetic examples when needed; no fixture directory exists yet. A private vulnerability reporting channel, contribution guide, and release policy must be established before public release.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Luis Assis.
