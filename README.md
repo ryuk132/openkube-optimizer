@@ -2,7 +2,7 @@
 
 OpenKube Optimizer is a planned open-source Kubernetes resource analysis tool. It will compare CPU and memory allocations with observed utilization and explain potential inefficiency and resource risks so engineers can make informed decisions.
 
-**Status: v0.1 architecture frozen; Milestone 1 complete and committed; Milestone 2 complete and accepted on 2026-09-29.** D1–D3 are resolved and ADRs 0001–0007 are Accepted. The package now includes eleven immutable domain records and pure quantity conversion with synthetic unit tests. No Kubernetes access, analysis engine, CLI, or reporting exists. The approved compatibility selections are reference targets, not established OpenKube runtime support. ADR 0007 was accepted on 2026-09-29; no staging, commit, push, or Milestone 3 work is authorized.
+**Status: v0.1 architecture frozen; Milestone 1 complete and committed; Milestone 2 complete and accepted on 2026-09-29.** D1–D3 are resolved and ADRs 0001–0008 are Accepted. The package now includes eleven immutable domain records and pure quantity conversion with synthetic unit tests. No Kubernetes access, analysis engine, CLI, or reporting exists. The approved compatibility selections are reference targets, not established OpenKube runtime support. [ADR 0008](docs/adr/0008-restricted-kubeconfig-and-bounded-transport.md) was accepted on 2026-09-30; M3 architecture/design and documentation consistency are complete. Implementation, dependencies, cluster work, staging, committing and pushing require separate authorization.
 
 > OBSERVE → ANALYZE → RECOMMEND → HUMAN DECIDES
 
@@ -36,6 +36,8 @@ In-cluster execution, historical Prometheus analysis, numerical resizing recomme
 | [Roadmap](docs/roadmap.md) | Incremental milestones and acceptance checks |
 | [Reference targets](docs/compatibility.md) | Approved version/platform/authentication targets and actual validation limits |
 | [ADRs](docs/adr/README.md) | Major decisions, alternatives, and trade-offs |
+
+M3 will collect only Pods, Deployments and ReplicaSets; M4 adds PodMetrics. The initial runtime validation priority is Ubuntu 24.04 LTS x86_64 under the [documented resolved/procfs profile](docs/compatibility.md#initial-runtime-and-endpoint-profile). macOS remains a development environment. Disposable transport/credential probes establish feasibility only, not Kubernetes or managed-platform support.
 
 ## Local development
 

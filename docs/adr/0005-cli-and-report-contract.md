@@ -31,3 +31,9 @@ A single success/failure bit hides partial collection. Treating findings as fail
 ## Consequences
 
 The accepted defaults are engineering hypotheses requiring implementation tests, not performance guarantees. Some large clusters, slow helpers, or filesystems may be unsupported until controls can be enforced. Schema artifacts and tests are later implementation work. This ADR is Accepted; it does not authorize Milestone 1.
+
+## Dated clarification — 2026-09-30
+
+Accepted [ADR 0008](0008-restricted-kubeconfig-and-bounded-transport.md#bounded-execution-amendment--2026-09-30) explicitly qualifies the original total/per-operation bounded-execution interpretation. Trusted local-file reads and native TLS-context construction are guarded setup, without hard mid-call cancellation. Setup elapsed remains counted from before authentication, without reset or numeric budget extension; a native call can overrun before control returns, after which expired work stops. Controlled Varlink resolution, address attempts, TCP, TLS handshake and HTTP remain within the transport deadline. Owned resources are closed/released, with no abandoned OpenKube resolver worker/task/process; instantaneous external daemon/shared-work cancellation is not guaranteed.
+
+The ten inputs, six exits and closed 18-group report schema remain unchanged. Existing operational/evidence numbers retain authority. “Report effective constants” applies to the established report allowlist; additional parser/input/transport guards are versioned implementation policy, not new report keys or user controls. This dated amendment preserves the original decision/history above rather than claiming its stronger interpretation was proven.

@@ -24,3 +24,7 @@ Supporting local and in-cluster execution together adds identity, packaging, tok
 ## Consequences
 
 The first release has no always-on API/dashboard, collector Job/image, telemetry, or analytics, and only one cluster per run. Future interfaces can call the same coordinator after review. Read-only RBAC is a second protection layer; it does not make arbitrary input or broad local credentials safe. This decision is Accepted as part of the v0.1 freeze; Milestone 1 still requires separate explicit user authorization.
+
+## Dated clarification — 2026-09-30
+
+Accepted [ADR 0008](0008-restricted-kubeconfig-and-bounded-transport.md) refines official-client use: generated request construction/dispatch sits behind controlled bounded wire handling, bypassing stock REST errors and generic generated deserialization as boundaries. One synchronous local process, explicit context/namespaces and permissions remain unchanged. Its Ubuntu resolved/procfs profile and native setup cancellation qualification govern current implementation intent. M3 design is complete; implementation still needs separate authorization.

@@ -1,6 +1,6 @@
 # Milestone 2 domain model
 
-Status: **Milestone 2 complete and accepted on 2026-09-29.** The user approved eleven immutable records and pure quantity conversion. No runtime dependency, SDK integration, collection, ownership adapter, polling, eligibility calculation, analysis rule, recommendation, CLI, or reporting behavior is implemented. `AnalysisSettings` is explicitly deferred until analysis/configuration code needs it. Milestone 3 is not authorized.
+Status: **Milestone 2 complete and accepted on 2026-09-29.** The user approved eleven immutable records and pure quantity conversion. No runtime dependency, SDK integration, collection, ownership adapter, polling, eligibility calculation, analysis rule, recommendation, CLI, or reporting behavior is implemented. `AnalysisSettings` is explicitly deferred until analysis/configuration code needs it. Milestone 3 architecture/design is complete under Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30; implementation requires separate authorization.
 
 The [data contract](data-and-egress.md#exact-projection-allowlist) remains the field authority. This document explains the implemented subset and its boundaries, not an additional collection or report allowlist. Source is in [models.py](../src/openkube_optimizer/domain/models.py) and [quantities.py](../src/openkube_optimizer/domain/quantities.py).
 
@@ -15,6 +15,8 @@ All eleven records use standard-library dataclasses with `frozen=True`, `slots=T
 | `ABSENT` | The applicable field was inspected and was not present |
 | `INVALID` | The supplied value was rejected; its raw content is not retained |
 | `UNAVAILABLE` | The fact could not be established, including unverified field visibility/interpretation |
+
+Accepted [ADR 0008 D1/D3](adr/0008-restricted-kubeconfig-and-bounded-transport.md) requires bounded strict wire projection before domain construction, not generated SDK deserialization. Unprojectable mandatory identity/ownership or list structure invalidates the affected namespace inventory pass; complete independent namespaces remain usable. Do not silently drop malformed objects and claim completeness. Well-formed unsupported/unresolved ownership and non-identity uncertainty remain representable; no domain record or quantity change is required. M3 supplies inventory; M4 supplies PodMetrics.
 
 Collection failure is not a field state. Later collection code must report it separately and must not manufacture empty inventory. A Kubernetes condition's `Unknown` value is also distinct from these three states. Known absence in a presence/count projection becomes false/zero; uncertainty does not.
 
@@ -76,4 +78,4 @@ The initial, unreleased `evidence-v1` specification retains its identifier with 
 
 Synthetic unit cases exercise state distinctions; exact conversion and Decimal-context independence; malformed, exponent/length, type, and numeric bounds; name reuse; ownership consistency; startup uncertainty; independent metric resources; template uniqueness; immutability; and safe representations/errors. A static import check and isolated import with external/application dependencies blocked check the domain dependency boundary. No fixture directory is needed.
 
-Run the existing [quality workflow](development.md#local-quality-checks). Milestone 2 was accepted on 2026-09-29 after these checks, package build, documentation links/consistency, unchanged toolchain/lock/ADRs 0001–0006, and user review. ADR 0007 was accepted on the same date. Runtime compatibility, real ownership, evidence gates, report safety, and UID teardown have not been integration-tested. Milestone 3 requires separate authorization.
+Run the existing [quality workflow](development.md#local-quality-checks). Milestone 2 was accepted on 2026-09-29 after these checks, package build, documentation links/consistency, unchanged toolchain/lock/ADRs 0001–0006, and user review. ADR 0007 was accepted on the same date. Runtime compatibility, real ownership, evidence gates, report safety, and UID teardown have not been integration-tested. Milestone 3 design is accepted; implementation requires separate authorization.

@@ -1,6 +1,6 @@
 # v0.1 CLI and acceptance contract
 
-Status: **Accepted architecture contract — frozen on 2026-09-28; not implemented.** No CLI or JSON schema artifact exists yet. This document defines its acceptance criteria; [ADR 0005](adr/0005-cli-and-report-contract.md) records the decision. Numeric defaults/caps are fixed engineering limits to validate, not measured capacity guarantees. Milestone 1 is complete and committed; the authorized [Milestone 2 domain model](domain-model.md) is complete and accepted on 2026-09-29. AnalysisSettings is explicitly deferred and the ten-input contract is unchanged. Milestone 3 is not authorized.
+Status: **Accepted architecture contract — frozen on 2026-09-28; not implemented.** No CLI or JSON schema artifact exists yet. This document defines its acceptance criteria; [ADR 0005](adr/0005-cli-and-report-contract.md) records the decision. Numeric defaults/caps are fixed engineering limits to validate, not measured capacity guarantees. Milestone 1 is complete and committed; the authorized [Milestone 2 domain model](domain-model.md) is complete and accepted on 2026-09-29. AnalysisSettings is explicitly deferred and the ten-input contract is unchanged. Milestone 3 architecture/design is complete under Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30; implementation requires separate authorization.
 
 ## Invocation and scope
 
@@ -31,6 +31,12 @@ Reject non-finite values, fractions for integer inputs, and decimal input longer
 
 Kubeconfig authentication and certificate files are external client inputs, not additional OpenKube configuration fields. Do not use `KUBECONFIG` to merge or select files; the path above is authoritative. The [approved reference-target profile](compatibility.md#planned-authentication-profile) selects two authentication forms for future validation and excludes helpers/proxies from the initial profile. This is not established runtime support. Reject excluded settings before client authentication or network access, without fallback, using configuration error/2. TLS verification is mandatory. No token/password/URL/proxy command-line overrides. The [egress contract](data-and-egress.md#potential-indirect-network-communication) records helper/proxy trust boundaries, not permission to enable unvalidated workflows.
 
+### Accepted connectivity and credential amendment — 2026-09-30
+
+Follow [ADR 0008 D2/D5/D6](adr/0008-restricted-kubeconfig-and-bounded-transport.md) and the [initial runtime/endpoint profile](compatibility.md#initial-runtime-and-endpoint-profile): Ubuntu resolved Varlink, explicit multi-label absolute hostname without search/single-label/custom NSS fallback, bounded address attempts and original-host TLS/SNI/HTTP authority. Private answers are allowed; preserve the validated HTTPS base path. No NSS-equivalence claim or additional endpoint input.
+
+Trusted regular credential files may use approved symlinks, unlike output destinations. Boundedly inspect stable files with overflow detection; CA loads from a certificate-only memory snapshot, while retained certificate/key descriptors supply `/proc/self/fd` paths for native rereads. No original CA-path reopen, credential copies or persistence. Always reject encrypted keys through a noninteractive callback; no prompt/password/environment/helper fallback. Configuration rejection uses existing exit 2; native TLS loading failure uses sanitized TLS_FAILED/3, without raw paths, contents or exception chains. D5 states the in-place mutation and zeroization limitations.
+
 ## Exit codes and report status
 
 | Exit | Report `run.status` | Meaning |
@@ -50,7 +56,7 @@ Configuration rejection 2 occurs before analysis; it emits only a sanitized diag
 
 ## Partial-success semantics
 
-A complete namespace inventory requires successful, bounded lists of Pods, ReplicaSets, and Deployments. If any inventory list fails or is truncated, discard that cycle's incomplete projected inventory for analysis; report the namespace failure. Completed inventories in other explicitly requested namespaces can still be used. An unavailable Metrics API yields inventory-only findings and exit 4 when inventory is usable. Authorization denials never cause retries or scope expansion.
+M3 inventory requires successful, bounded lists of Pods, ReplicaSets, and Deployments. M4 adds PodMetrics. Under ADR 0008 D3, unprojectable mandatory identity/ownership or list structure invalidates that namespace pass; never silently drop an object and claim completeness. Well-formed unresolved/unsupported ownership and representable non-identity field uncertainty retain their existing states. A complete namespace inventory requires all three inventory lists. If any inventory list fails or is truncated, discard that cycle's incomplete projected inventory for analysis; report the namespace failure. Completed inventories in other explicitly requested namespaces can still be used. An unavailable Metrics API yields inventory-only findings and exit 4 when inventory is usable. Authorization denials never cause retries or scope expansion.
 
 | Condition | Required outcome |
 | --- | --- |
@@ -103,7 +109,11 @@ Under approved D1, the following are fixed internal safety constants or mode-der
 
 The fixed `baseline_seconds` and `final_inventory_seconds` budgets are each 60 and are also required keys in `configuration.limits`. `baseline_seconds` applies only to observation setup; `final_inventory_seconds` applies to observation closure. Snapshot uses a single 60-second bracket cycle without separate baseline/final passes. The [evidence timeline](evidence-eligibility.md#one-observation-timeline) defines `t0`, slot boundaries, and final closure; initialization/finalization do not count toward observation duration or coverage.
 
-The total monotonic deadline starts before authentication and includes every operation/backoff/write. Authentication (up to 30), observation baseline (up to 60), duration D, final inventory (up to 60), and finalization (up to 15) fit inside D + 180 seconds; later refreshes consume existing budgets, never extend them. Stop collection by total deadline minus the 15-second finalization reserve. The earliest active deadline wins. Bound stdout/file writes too. Helpers requiring longer interactive authentication are unsupported during a run; authenticate beforehand with operator tooling.
+The total monotonic clock starts before authentication and counts elapsed setup, operations, backoff and writes without resetting. The existing budgets remain authentication 30 seconds, observation baseline 60, duration D, final inventory 60 and finalization 15 within D + 180; snapshot remains 180 seconds. Stop collection by the total deadline minus the finalization reserve. The earliest active deadline wins; bound stdout/file writes too. Helpers and refresh are outside the initial authentication profile; their existing budget does not authorize them.
+
+**Dated bounded-execution qualification, 2026-09-30:** Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md#bounded-execution-amendment--2026-09-30) explicitly qualifies the earlier “includes every operation/backoff/write” cancellation interpretation. Trusted local-file reads and native TLS-context construction are setup guarded by input size, parser/format checks, validation, cleanup and sanitized failures. OpenKube does not promise hard mid-call cancellation of executing synchronous file reads or OpenSSL parsing; a Python timer is not native cancellation. Setup consumes existing budgets and can overrun them before returning control. Check deadlines before/after setup and stop further authentication/transport work if expired. This is not an unconditional total wall-clock return guarantee across setup.
+
+The unchanged 15-second attempt deadline begins with controlled Varlink resolution and covers all address attempts, TCP, TLS handshake and HTTP processing; each TCP candidate also has the five-second cap, shortened by earlier deadlines. No progress or address change resets it. Close/release owned controllable resources on cancellation and leave no OpenKube-owned resolver worker/task/process behind. Instantaneous systemd-resolved/shared-work cancellation is not guaranteed. Numeric limits, output safety and evidence timing are unchanged.
 
 Retry connection resets, timeouts, HTTP 429, and transient HTTP 500/502/503/504 only. Backoff is 1 second then 2 seconds with at most 250 ms jitter, bounded by remaining deadlines. Honor a valid `Retry-After` only if it fits the remaining budget; otherwise report unavailable. Never retry 401/403, certificate validation failure, malformed data, or permanent 4xx responses. SDK implicit retries must not multiply this budget.
 
@@ -112,6 +122,10 @@ Quantity ceilings: 1,000,000 decimal CPU cores and 2^60 memory bytes per field; 
 The user-approved Milestone 2 normalization rounds valid nonnegative fractional memory upward after exact parsing, with the memory ceiling enforced on the result. CPU remains exact Decimal cores. The pure [quantity parser](domain-model.md#exact-quantity-conversion) bounds explicit exponent magnitude before expansion; this implementation guard adds no CLI input or report-limit key. Transport controls remain unimplemented.
 
 These additional fixed parser limits are required `configuration.limits` keys: `max_cpu_cores` (decimal string `1000000`), `max_memory_bytes` (integer 1152921504606846976), `max_quantity_characters` (integer 128), `max_identifier_bytes` (integer 1024). They are not user inputs. Backoff constants are implementation policy described above, not a configurable retry framework.
+
+### Additional implementation guards
+
+[ADR 0008 D4](adr/0008-restricted-kubeconfig-and-bounded-transport.md#d4--local-input-and-wire-safety-limits) separates architectural boundedness requirements, previously frozen operational limits above, and versioned implementation guards such as local-file caps, parser nesting, Varlink framing/address caps and HTTP metadata/wire caps. The latter are defensive policy, not Kubernetes semantic limits, extra user inputs or report keys. The ten-input configuration, six exits and closed 18-group report schema remain unchanged; only the established `configuration.limits` allowlist is emitted. Guard values and boundary tests are versioned with implementation policy.
 
 ## Safe output-file behavior
 
@@ -123,4 +137,4 @@ Stdout output is serialized before writing, but a broken pipe/interruption can s
 
 ## Required validation
 
-Test exit/status precedence, empty inventories, mixed namespace permissions, missing metrics, shorter interrupted runs, every bound, hostile/oversized responses, stalled helpers/sinks, raw exception canaries, and output symlink/overwrite races. Validate schema and exact field allowlists with synthetic data. Restricted-identity integration tests must deny excluded resources and mutations. These are future implementation acceptance checks, not claims of checks already passed.
+Test exit/status precedence, empty inventories, mixed namespace permissions, missing metrics, shorter interrupted runs, every bound, hostile/oversized responses, rejection of excluded helpers, stalled transports/sinks, raw exception canaries, and output symlink/overwrite races. Validate schema and exact field allowlists with synthetic data. Restricted-identity integration tests must deny excluded resources and mutations. These are future implementation acceptance checks, not claims of checks already passed.

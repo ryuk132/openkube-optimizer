@@ -28,3 +28,7 @@ Name prefixes and labels are convenient but are not authoritative ownership. Pas
 ReplicaSet list access is required. Orphans and unsupported owners produce explicit skipped outcomes. Inventory checks around metrics reduce name-reuse risk but cannot provide a transactional cluster snapshot; abstention remains necessary. The additional domain types make security review and synthetic testing more precise.
 
 Per-subject findings remain separate even when grouped under a Deployment; never merge distinct internal subjects merely because their output names match. Report policy versions, actual thresholds, coverage and abstention reasons. Required lifecycle/resize fields must be verified against pinned SDK/API versions; unknown semantics fail eligibility. This ADR is Accepted; UID-free output does not weaken UID-based internal ownership checks.
+
+## Dated clarification — 2026-09-30
+
+Accepted [ADR 0008 D3](0008-restricted-kubeconfig-and-bounded-transport.md#d3--unprojectable-mandatory-structure) specifies the future projection failure boundary: unprojectable mandatory identity/ownership or list structure invalidates the affected namespace inventory pass. Never silently drop objects while claiming completeness; independently complete namespaces remain usable. Well-formed unresolved/unsupported ownership and representable uncertain fields are not that structural failure. UID identity, existing domain records and evidence semantics are unchanged.

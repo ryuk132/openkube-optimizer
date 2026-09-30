@@ -1,6 +1,6 @@
 # Planned repository and Python modules
 
-Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0007 was also accepted on 2026-09-29; staging, committing, pushing, and Milestone 3 are not authorized.
+Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. Implementation, dependencies, manifests, staging, committing and pushing require separate authorization.
 
 ## Current implementation
 
@@ -23,7 +23,7 @@ openkube-optimizer/
 │   ├── test_package.py
 │   ├── test_domain_models.py
 │   └── test_quantities.py
-└── docs/                           # includes domain-model.md and Accepted ADR 0007
+└── docs/                           # includes domain-model.md and Accepted ADRs 0007/0008
 ```
 
 The local `.venv`, tool caches, and `dist/` are ignored. No fixtures directory, CLI entry point, or runtime dependencies exist. Initializers have no I/O. Tests cover installed-package metadata and pure domain invariants/conversion. No collection, evidence evaluation, or reporting behavior exists.
@@ -94,16 +94,18 @@ openkube-optimizer/
 | `logging_config.py` | Structured operational events; exclude bodies, credentials, and arbitrary metadata |
 | `domain/models.py` | Milestone 2: eleven closed immutable identity/inventory/metric fact records, field states, and fixed version identifiers. Evidence results, findings, recommendations, and run summaries remain deferred until their producing milestones. AnalysisSettings is explicitly outside Milestone 2. |
 | `domain/quantities.py` | Implemented bounded pure conversion: exact Decimal CPU, integer memory with upward fractional-byte normalization; no float or SDK dependency |
-| `collection/kubernetes.py` | Four fixed namespaced list endpoints; transport caps, deadlines, pagination, sanitized errors, prompt raw-reference release |
-| `collection/projection.py` | Exact data-contract allowlist; no raw API objects beyond the adapter boundary |
+| `collection/kubernetes.py` | M3: three fixed namespaced inventory endpoints (Pods, Deployments, ReplicaSets); generated SDK dispatch behind controlled bounded transport, pagination, sanitized errors and prompt raw-reference release |
+| `collection/projection.py` | Strict wire validation and exact data-contract allowlist; unprojectable mandatory structure invalidates namespace pass, representable uncertainty preserved; no raw API objects beyond adapter |
 | `collection/ownership.py` | UID-based owner traversal with explicit unresolved outcomes |
 | `metrics/base.py` | Small typed provider protocol returning samples and source limitations |
-| `metrics/metrics_api.py` | PodMetrics reads and normalization; no direct kubelet access |
+| `metrics/metrics_api.py` | M4: PodMetrics reads/normalization through shared controlled transport; no direct kubelet access |
 | `analysis/quality.py` | Versioned evidence contract: identity, lifecycle, windows, coverage, duration, and abstention |
 | `analysis/rules.py` | Deterministic functions from evidence to findings, without I/O |
 | `recommendations.py` | Map findings to explanations, caveats, and human review actions |
 | `reporting.py` | Separate UID-free report projection/allowlist, versioned JSON schema, escaped names in terminal output, safe file publication |
 | `service.py` | Compose one local bounded run, inventory brackets, scheduled slots, partial status, deadlines, and measurements |
+
+Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md) defines the adapter boundaries, not new placeholder modules: Ubuntu resolved/procfs transport; stable trusted credential loading; setup/native cancellation exception; bounded wire handling before projection. Its future kubernetes==36.0.3 and h11==0.16.0 dependencies are not installed. macOS remains development-only; neither probes nor this plan establish runtime support. Choose concrete files only with authorized implementation. New defensive guards add no configuration or report fields.
 
 The CLI depends on the coordinator; adapters and rules depend on the domain. Domain and analysis modules must not import the Kubernetes client, the CLI, or reporting code. Add abstractions at actual external boundaries, not a generic repository framework or plugin loader.
 

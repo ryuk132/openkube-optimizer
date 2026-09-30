@@ -30,3 +30,7 @@ A broad read role exposes unnecessary resources. Label/field selectors constrain
 ## Consequences
 
 Both the transient-exposure interpretation and report-identifier policy are resolved by explicit user decisions. This ADR is Accepted; implementation is not authorized. Small grants reduce blast radius but do not eliminate sensitive reads within allowed objects or broader supplied credentials. Verify credential/UID canaries, report projection, restricted RBAC, raw/UID reference lifetime, and transport bounds before collection acceptance. See the complete [security model](../security.md).
+
+## Dated clarification — 2026-09-30
+
+Accepted [ADR 0008](0008-restricted-kubeconfig-and-bounded-transport.md) requires controlled bounded wire validation and immediate allowlisted projection; transient raw permission does not mandate full SDK models. Prevent body-bearing SDK exceptions rather than formatting them. The final four-resource RBAC set is unchanged: M3 inventories Pods/Deployments/ReplicaSets; M4 adds PodMetrics. Helpers/proxies remain excluded initially. Stable trusted credentials, snapshot/descriptor loading and no-copy/noninteractive rules refine the transport boundary without changing UID/report allowlists.
