@@ -1,6 +1,6 @@
 # Initial reference targets and validation status
 
-Status: **Approved Milestone 1 reference contract — 2026-09-28.** These selections are initial reference targets or planned validation targets, not established OpenKube runtime support. Current profile amended by Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md) on 2026-09-30. Disposable Ubuntu transport and credential-loading feasibility was exercised; no Kubernetes application/authentication, metrics, or report-filesystem integration is validated. Runtime dependencies remain empty.
+Status: **Approved Milestone 1 reference contract — 2026-09-28.** These selections are initial reference targets or planned validation targets, not established OpenKube runtime support. Current profile amended by Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md) on 2026-09-30. Disposable Ubuntu transport and credential-loading feasibility was exercised; no Kubernetes application/authentication, metrics, or report-filesystem integration is validated. M3 slice 1 installs/locks only kubernetes==36.0.3 and h11==0.16.0 as direct dependencies; no runtime adapter is implemented.
 
 ## Terminology and evidence
 
@@ -20,8 +20,8 @@ Use these terms in release and development documentation. Do not describe a sele
 | Component | Initial reference / planned validation target | Current OpenKube evidence |
 | --- | --- | --- |
 | Kubernetes | Minor 1.36; initial reference patch **1.36.4** | Not yet validated; no cluster accessed |
-| Official Kubernetes Python client | **36.0.3** | Not installed in the project; generated dispatch exercised in disposable probes only |
-| HTTP framing | **h11==0.16.0** approved for implementation | Disposable framing tests only; not installed in the project |
+| Official Kubernetes Python client | **36.0.3** | Installed/locked in slice 1; guarded import tests pass; generated dispatch exercised in earlier disposable probes only |
+| HTTP framing | **h11==0.16.0** approved for implementation | Installed/locked in slice 1; import tests pass; framing evidence remains disposable only |
 | CPython | **3.13.15** | Foundation and pure domain unit checks pass; Kubernetes runtime not tested |
 | Metrics Server | **0.9.0** | Not yet validated; operator-managed reference implementation |
 | Metrics API | **metrics.k8s.io/v1beta1** | Not yet validated; fixed namespaced PodMetrics endpoint planned |
@@ -104,4 +104,4 @@ Research reviewed for the approved 2026-09-28 reference selection:
 
 Before any runtime-support claim, record exact versions/platform/filesystem/authentication combinations and passing application tests. Milestone 3 must verify SDK field visibility, the restricted authentication profile, TLS, three-inventory-endpoint RBAC and denial cases, transport/deadline bounds, and sanitized failures. Milestone 4 adds PodMetrics endpoint/RBAC integration and metrics/evidence behavior. Milestone 6 must verify report safety, filesystem behavior, and exit semantics. Remaining packaging/release checks stay in their roadmap milestones. Do not waive any of these because upstream projects document compatibility.
 
-Milestone 1 selects and documents reference targets; it does not perform those later integration tests. No SDK/runtime dependency or application behavior is authorized by this reference contract. Milestone 2 domain records and pure conversion were subsequently authorized separately and were accepted on 2026-09-29; their synthetic tests do not validate any Kubernetes/authentication/metrics combination. Milestone 3 architecture/design is complete under Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30; implementation requires separate authorization.
+Milestone 1 selects and documents reference targets; it does not perform those later integration tests. No SDK/runtime dependency or application behavior is authorized by this reference contract. Milestone 2 domain records and pure conversion were subsequently authorized separately and were accepted on 2026-09-29; their synthetic tests do not validate any Kubernetes/authentication/metrics combination. Milestone 3 architecture/design is complete under Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30; only the dependency/package-boundary slice is now authorized and implemented; all subsequent behavior requires separate authorization.

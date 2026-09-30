@@ -1,6 +1,6 @@
 # Local development
 
-Milestone 1 is complete and committed. The authorized [Milestone 2 domain model](domain-model.md) adds eleven immutable records, pure quantity conversion, and synthetic unit tests; it was accepted on 2026-09-29. There is no CLI entry point, runtime dependency, Kubernetes access, eligibility/rule logic, or reporting. [ADR 0006](adr/0006-python-project-foundation.md) remains Accepted on 2026-09-28; Accepted [ADR 0007](adr/0007-explicit-container-started.md) records the approved startup clarification. Milestone 3 architecture/design is complete under Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30; implementation requires separate authorization.
+Milestone 1 is complete and committed. The authorized [Milestone 2 domain model](domain-model.md) adds eleven immutable records, pure quantity conversion, and synthetic unit tests; it was accepted on 2026-09-29. M3 slice 1 adds the two approved runtime dependencies and inert collection package. There is no CLI entry point, Kubernetes access, eligibility/rule logic or reporting. [ADR 0006](adr/0006-python-project-foundation.md) remains Accepted on 2026-09-28; Accepted [ADR 0007](adr/0007-explicit-container-started.md) records the approved startup clarification. Milestone 3 architecture/design is complete under Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30; slice 1 covers dependencies/package boundaries only; subsequent behavior requires separate authorization.
 
 ## Environment and dependencies
 
@@ -56,6 +56,8 @@ The package smoke test checks installed distribution metadata. Domain tests exer
 OPENKUBE_WHEEL="$(pwd)/dist/openkube_optimizer-0.1.0.dev0-py3-none-any.whl"
 OPENKUBE_WHEEL_ENV="$(mktemp -d "${TMPDIR:-/tmp}/openkube-wheel.XXXXXX")"
 uv venv --python 3.13.15 "$OPENKUBE_WHEEL_ENV"
+uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file "$OPENKUBE_WHEEL_ENV/runtime.txt"
+uv pip sync --python "$OPENKUBE_WHEEL_ENV/bin/python" "$OPENKUBE_WHEEL_ENV/runtime.txt"
 uv pip install --no-index --no-deps --python "$OPENKUBE_WHEEL_ENV/bin/python" "$OPENKUBE_WHEEL"
 (
     cd "$OPENKUBE_WHEEL_ENV" || exit
@@ -63,7 +65,7 @@ uv pip install --no-index --no-deps --python "$OPENKUBE_WHEEL_ENV/bin/python" "$
 )
 ```
 
-The printed module location should be inside the temporary environment's `site-packages`, not the repository's `src/`. `-I` ignores user site packages and Python environment variables. The fresh environment is unseeded; installing the wheel with `--no-index --no-deps` proves the current package requires no downloaded runtime dependency. Remove that specific temporary environment after inspection; it is not part of the repository.
+The printed module location should be inside the temporary environment's `site-packages`, not the repository's `src/`. `-I` ignores user site packages and Python environment variables. The fresh environment receives runtime dependencies from the lock export (with hashes), then the built wheel without dependency re-resolution. The dependency sync can download packages. The final `--no-index --no-deps` step validates the local wheel; it no longer implies a dependency-free package. Remove that specific temporary environment after inspection; it is not part of the repository.
 
 ## Repository hygiene and test data
 
@@ -118,6 +120,8 @@ Administrative closeout on 2026-09-29 reran `uv sync --locked`, Ruff lint and fo
 
 ## Milestone 3 design and feasibility — 2026-09-30
 
+Historical design/consistency snapshot before the separately authorized slice below.
+
 Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md) completes M3 design; the documentation consistency pass is complete. M3 implementation, dependencies, RBAC/cluster work and Git publication remain separately authorized actions. Earlier validation sections above are historical snapshots, not the current SDK investigation status.
 
 The [compatibility evidence](compatibility.md#disposable-feasibility-evidence--2026-09-30) records disposable Ubuntu transport/credential probes, separate from foundation/domain checks. Generated SDK dispatch, Varlink deadlines, bounded synthetic TCP/TLS/HTTP, CA snapshots and descriptor-backed credential loading were exercised outside this repository. No Kubernetes authentication/RBAC/platform integration or report filesystem support was established. Synthetic timing observations are not hard native setup cancellation or worst-case CPU/memory proofs.
@@ -125,3 +129,17 @@ The [compatibility evidence](compatibility.md#disposable-feasibility-evidence--2
 The accepted runtime target is Ubuntu 24.04 LTS x86_64 with active trusted resolved Varlink and procfs; macOS is development-only. M3 inventory is Pods/Deployments/ReplicaSets; M4 adds PodMetrics. Intended `kubernetes==36.0.3` and approved `h11==0.16.0` are not installed in the project; runtime dependencies and lock remain unchanged. No pyOpenSSL or direct cryptography dependency is required.
 
 Local trusted-file/native TLS setup is guarded and counted against existing total budgets, not hard-preemptible; controlled resolution through HTTP has the transport deadline. Follow ADR 0008 for stable trusted credentials, rejecting callbacks, no copies and cleanup rather than copying disposable probes into application code. This documentation-only pass runs link/anchor, contract preservation, historical ADR, dependency and Git checks; no application test/build rerun is required.
+
+## Milestone 3 slice 1 — dependencies and import boundary
+
+Explicitly authorized after the committed ADR 0008 documentation pass. Direct runtime requirements are exactly `kubernetes==36.0.3` and `h11==0.16.0`; no existing dependency versions were upgraded. The SDK adds requests, aiohttp, PyYAML and their dependencies transitively; these are not direct selections or authorization to use their transport/authentication behavior. No pyOpenSSL, cryptography or cloud SDK is added. See `uv.lock` for exact transitive versions.
+
+Only `collection/__init__.py` is introduced in application source, with a package-boundary docstring and no executable behavior. The documented kubernetes/projection/ownership modules remain absent until needed. Domain source and M2 tests remain unchanged. Six new boundary cases check static SDK confinement, pure-layer independence, relative/from import scanning, exact dependency imports/metadata, and isolated import behavior. The tests use fresh child interpreters as test isolation only, never as an application transport design. They require no cluster, DNS, kubeconfig or network access.
+
+OpenKube imports are tested with external imports, environment lookups, non-module file reads, sockets, subprocesses and thread starts blocked. The package/collection/domain imports pass without importing kubernetes or h11. Static checks are regression guards, not a security sandbox or a proof about future dynamically executed imports. Existing M2 tests cover rejecting arbitrary nested objects and safe domain representations; no serializer or raw SDK field is added.
+
+The installed SDK is not side-effect-free: top-level import loads config/auth modules, reads `KUBECONFIG` into a default-location constant, attempts optional Google-auth imports, and imports urllib3, whose IPv6 capability probe attempts a local socket/bind. The offline test rejects socket creation before it occurs and records the attempt; it does not perform the bind. Python's macOS pydoc/sysconfig path also reads system-version metadata and environment settings. The test permits that specific OS metadata read, never credential files. No kubeconfig/auth loader, exec-provider execution, DNS/connection, subprocess/thread start or Configuration construction/default setter was observed; `_default` remains None. h11 imports successfully without activating these paths. aiohttp is installed transitively but is not imported by the tested synchronous SDK import; optional Google auth is unavailable in the locked environment.
+
+These findings cover the pinned packages on development CPython 3.13.15, not arbitrary environments or future SDK usage. Python audit hooks cannot prove the absence of all native-library file access. The future adapter must keep SDK imports/activation inside its explicit I/O boundary and enforce ADR 0008 preflight controls; installing a helper-capable dependency does not authorize invoking helpers or global Configuration. No Kubernetes/platform/runtime compatibility is established.
+
+Slice validation on development CPython 3.13.15: `uv add --no-sync` generated the lock; `uv sync --locked` passed; Ruff lint/format passed; strict mypy passed for nine files; all 121 pytest cases passed (115 unchanged existing cases and six new boundary cases). `uv build` produced the source distribution and wheel. A clean external environment received the locked runtime export and built wheel; isolated OpenKube/SDK import checks and `uv pip check` passed. Wheel metadata contains only the two approved requirements, Python >=3.13 and no CLI entry points. No existing dependency version or M2 source/test file changed. The initial uv cache sandbox denial required an authorized retry; no unresolved validation failure remains.
