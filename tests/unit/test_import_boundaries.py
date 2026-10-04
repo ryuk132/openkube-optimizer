@@ -53,6 +53,8 @@ def test_sdk_imports_stay_in_collection_and_pure_layers_stay_independent() -> No
             root = module.split(".")[0]
             if root in {"kubernetes", "h11"}:
                 assert relative.parts[0] == "collection", relative
+            if root == "yaml":
+                assert relative.as_posix() == "collection/kubeconfig.py", relative
             if relative.parts[0] in {"domain", "analysis"}:
                 assert (
                     root in sys.stdlib_module_names
@@ -126,6 +128,7 @@ threading.Thread.start = reject
 _thread.start_new_thread = reject
 import openkube_optimizer
 import openkube_optimizer.collection
+import openkube_optimizer.collection.kubeconfig
 import openkube_optimizer.domain.models
 import openkube_optimizer.domain.quantities
 assert not events
@@ -146,7 +149,11 @@ def test_approved_dependencies_import_without_activating_authentication(
     inject_socket_canary: bool,
 ) -> None:
     installed = distribution("openkube-optimizer")
-    assert sorted(installed.requires or []) == ["h11==0.16.0", "kubernetes==36.0.3"]
+    assert sorted(installed.requires or []) == [
+        "h11==0.16.0",
+        "kubernetes==36.0.3",
+        "pyyaml==6.0.3",
+    ]
     script = """
 import os
 import socket

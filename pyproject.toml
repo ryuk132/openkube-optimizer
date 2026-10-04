@@ -14,6 +14,7 @@ authors = [{ name = "Luis Assis" }]
 dependencies = [
     "h11==0.16.0",
     "kubernetes==36.0.3",
+    "pyyaml==6.0.3",
 ]
 
 [dependency-groups]

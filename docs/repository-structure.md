@@ -1,6 +1,6 @@
 # Planned repository and Python modules
 
-Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. Slice 1 authorizes only the approved dependencies, inert collection package and boundary tests. Later application implementation, manifests and Git publication remain separately authorized.
+Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. M3.1 supplies dependencies/package boundaries; M3.2A adds only the private restricted kubeconfig document loader. Later application implementation, manifests and Git publication remain separately authorized.
 
 ## Current implementation
 
@@ -16,7 +16,8 @@ openkube-optimizer/
 ├── src/openkube_optimizer/
 │   ├── __init__.py
 │   ├── collection/
-│   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   └── kubeconfig.py
 │   └── domain/
 │       ├── __init__.py
 │       ├── models.py
@@ -25,11 +26,12 @@ openkube-optimizer/
 │   ├── test_package.py
 │   ├── test_domain_models.py
 │   ├── test_import_boundaries.py
+│   ├── test_kubeconfig.py
 │   └── test_quantities.py
 └── docs/                           # includes domain-model.md and Accepted ADRs 0007/0008
 ```
 
-The local `.venv`, tool caches, and `dist/` are ignored. No fixtures directory or CLI entry point exists. Slice 1 adds only kubernetes==36.0.3 and h11==0.16.0 as direct runtime dependencies and a docstring-only collection initializer; future collection/projection/ownership modules are not created. Initializers have no I/O. Tests cover installed-package metadata and pure domain invariants/conversion. No collection, evidence evaluation, or reporting behavior exists.
+The local `.venv`, tool caches, and `dist/` are ignored. No fixtures directory or CLI entry point exists. Slice 1 adds only kubernetes==36.0.3 and h11==0.16.0 as direct runtime dependencies and a docstring-only collection initializer; future collection/projection/ownership modules are not created. M3.2A adds `collection/kubeconfig.py` for explicit-path bounded document loading with direct PyYAML==6.0.3; no context selection or authentication. Initializers have no I/O. Tests cover installed-package metadata and pure domain invariants/conversion. No collection, evidence evaluation, or reporting behavior exists.
 
 ## Future repository plan
 

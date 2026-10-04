@@ -2,7 +2,7 @@
 
 OpenKube Optimizer is a planned open-source Kubernetes resource analysis tool. It will compare CPU and memory allocations with observed utilization and explain potential inefficiency and resource risks so engineers can make informed decisions.
 
-**Status: v0.1 architecture frozen; Milestone 1 complete and committed; Milestone 2 complete and accepted on 2026-09-29.** D1–D3 are resolved and ADRs 0001–0008 are Accepted. The package now includes eleven immutable domain records and pure quantity conversion with synthetic unit tests. No Kubernetes access, analysis engine, CLI, or reporting exists. The approved compatibility selections are reference targets, not established OpenKube runtime support. [ADR 0008](docs/adr/0008-restricted-kubeconfig-and-bounded-transport.md) was accepted on 2026-09-30; M3 architecture/design and documentation consistency are complete. The first M3 slice now adds only the approved runtime dependencies, inert collection package and boundary tests. All later implementation, cluster work and Git publication require separate authorization.
+**Status: v0.1 architecture frozen; Milestone 1 complete and committed; Milestone 2 complete and accepted on 2026-09-29.** D1–D3 are resolved and ADRs 0001–0008 are Accepted. The package now includes eleven immutable domain records and pure quantity conversion with synthetic unit tests. No Kubernetes access, analysis engine, CLI, or reporting exists. The approved compatibility selections are reference targets, not established OpenKube runtime support. [ADR 0008](docs/adr/0008-restricted-kubeconfig-and-bounded-transport.md) was accepted on 2026-09-30; M3 architecture/design and documentation consistency are complete. M3.1 provides dependencies and boundary tests; M3.2A adds only restricted local kubeconfig document loading, without selection or authentication. All later implementation, cluster work and Git publication require separate authorization.
 
 > OBSERVE → ANALYZE → RECOMMEND → HUMAN DECIDES
 
@@ -41,7 +41,7 @@ M3 will collect only Pods, Deployments and ReplicaSets; M4 adds PodMetrics. The 
 
 ## Local development
 
-Use CPython 3.13.15 and uv. The [development guide](docs/development.md) explains environment setup, dependency locking, quality checks, and package validation. The package has exactly two direct runtime dependencies, `kubernetes==36.0.3` and `h11==0.16.0`, and no command-line entry point. Importing OpenKube does not import them or activate clients. See the [M3 boundary validation](docs/development.md#milestone-3-slice-1--dependencies-and-import-boundary) for transitive/import behavior. Development installation does not provide a working Kubernetes analyzer.
+Use CPython 3.13.15 and uv. The [development guide](docs/development.md) explains environment setup, dependency locking, quality checks, and package validation. The package has exactly three direct runtime dependencies, `kubernetes==36.0.3`, `h11==0.16.0` and `PyYAML==6.0.3`, and no command-line entry point. Importing OpenKube does not import them or activate clients. See the [M3 boundary validation](docs/development.md#milestone-3-slice-1--dependencies-and-import-boundary) for transitive/import behavior. Development installation does not provide a working Kubernetes analyzer.
 
 ## Security and project maturity
 
