@@ -47,7 +47,7 @@ Upstream Kubernetes, EKS, AKS, OpenShift, ROSA and ARO remain future platform va
 
 Use one explicit context from one trusted kubeconfig, following the existing path/default contract. Exactly one unambiguous mechanism in the selected context is a planned validation target:
 
-1. `user.token` containing an externally obtained bearer token.
+1. `user.token` containing an externally obtained opaque bearer token. The initial transport envelope accepts only visible ASCII U+0021–U+007E; OpenKube does not trim, normalize or parse the token.
 2. Existing file-based `user.client-certificate` and `user.client-key` credentials, with unencrypted private keys only.
 
 Both require an explicit `certificate-authority` file, HTTPS, and hostname verification. No implicit trust-store fallback or authentication fallback is allowed. Credential provisioning and sufficient validity for the intended run are the operator's responsibility. OpenKube must not acquire/refresh tokens, rewrite kubeconfig, or create credential files. An externally provisioned ServiceAccount bearer token may be used locally; that is not in-cluster execution or token-creation authority.

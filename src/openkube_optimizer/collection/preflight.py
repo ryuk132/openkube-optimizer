@@ -86,7 +86,7 @@ class _Preflight(_PrivateRecord):
 
 
 def _text(value: object) -> bool:
-    # Preserve all remaining text, including whitespace in opaque tokens/names.
+    # Preserve remaining text in names and credential references.
     return (
         isinstance(value, str)
         and bool(value)
@@ -169,7 +169,13 @@ def _authentication(
         return _Failure.INVALID_AUTH
     if "token" in user:
         token = user["token"]
-        if len(user) != 1 or not isinstance(token, str) or not _text(token):
+        # Transport envelope only; retain opaque token text without rewriting.
+        if (
+            len(user) != 1
+            or not isinstance(token, str)
+            or not token
+            or any(not 33 <= ord(char) <= 126 for char in token)
+        ):
             return _Failure.INVALID_AUTH
         return _BearerToken(token=token)
     certificate = _path(user.get("client-certificate"), directory)
@@ -179,10 +185,8 @@ def _authentication(
     return _ClientCertificate(certificate_path=certificate, key_path=key)
 
 
-def _preflight(
-    document: _Document, *, context_name: str, kubeconfig_path: Path
-) -> _Preflight | _Failure:
-    """Select explicitly; caller must supply the original document's file path."""
+def _preflight(document: _Document, *, context_name: str) -> _Preflight | _Failure:
+    """Select explicitly; credential origin is captured by document loading."""
     contexts = _index(document._data.get("contexts"))
     if isinstance(contexts, _Failure):
         return contexts
@@ -221,9 +225,7 @@ def _preflight(
     if isinstance(endpoint, _Failure):
         return endpoint
     try:
-        # Anchor relative kubeconfig locations without resolving symlinks or
-        # consulting environment/default kubeconfig paths.
-        directory = kubeconfig_path.absolute().parent
+        directory = document._origin
         ca = _path(cluster["certificate-authority"], directory)
         if ca is None:
             return _Failure.INVALID_CLUSTER

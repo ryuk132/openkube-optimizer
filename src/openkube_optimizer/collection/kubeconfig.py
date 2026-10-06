@@ -9,6 +9,7 @@ import os
 import stat
 from enum import Enum
 from pathlib import Path
+from typing import Never, SupportsIndex
 
 _INPUT_POLICY_VERSION = "kubeconfig-input-v1"
 _MAX_BYTES = 1024 * 1024
@@ -37,13 +38,20 @@ class _Failure(Enum):
 class _Document:
     """Adapter-private holder, deliberately without a public mapping API."""
 
-    __slots__ = ("_data",)
+    __slots__ = ("_data", "_origin")
 
-    def __init__(self, data: dict[str, _Value]) -> None:
+    def __init__(self, data: dict[str, _Value], origin: Path) -> None:
         self._data = data
+        self._origin = origin
 
     def __repr__(self) -> str:
         return "<kubeconfig document: redacted>"
+
+    def __reduce_ex__(self, protocol: SupportsIndex) -> Never:
+        self.__getstate__()
+
+    def __getstate__(self) -> Never:
+        raise TypeError("Kubeconfig documents cannot be serialized")
 
 
 class _Rejected(Exception):
@@ -76,7 +84,7 @@ def _read_file(path: Path) -> bytes | _Failure:
         return _Failure.INVALID_INPUT
 
 
-def _parse(text: str) -> _Document | _Failure:
+def _parse(text: str, origin: Path) -> _Document | _Failure:
     # PyYAML 6.0.3 ships no typing metadata. Keep the exception at this import;
     # our graph/return types are checked, without adding a stub dependency.
     import yaml  # type: ignore[import-untyped]
@@ -142,7 +150,7 @@ def _parse(text: str) -> _Document | _Failure:
             )
         ):
             return _Failure.INVALID_STRUCTURE
-        return _Document(root)
+        return _Document(root, origin)
     except _Rejected:
         return _Failure.UNSUPPORTED_YAML
     # PyYAML also raises ValueError for out-of-range Unicode escape values.
@@ -154,6 +162,10 @@ def _parse(text: str) -> _Document | _Failure:
 
 def _load_document(path: Path) -> _Document | _Failure:
     """Read only the supplied path; return a closed failure, never source errors."""
+    try:
+        path = path.absolute()
+    except (OSError, ValueError):
+        return _Failure.INVALID_INPUT
     data = _read_file(path)
     if isinstance(data, _Failure):
         return data
@@ -162,4 +174,4 @@ def _load_document(path: Path) -> _Document | _Failure:
     except UnicodeDecodeError:
         return _Failure.INVALID_UTF8
     del data
-    return _parse(text)
+    return _parse(text, path.parent)

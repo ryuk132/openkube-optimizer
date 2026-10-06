@@ -1,9 +1,14 @@
 """Synthetic-only tests of the private document boundary, never authentication."""
 
+import copy
+import dataclasses
+import json
 import os
+import pickle
 import subprocess
 import sys
 from pathlib import Path
+from typing import Callable
 
 import pytest
 
@@ -11,6 +16,90 @@ from openkube_optimizer.collection import kubeconfig as kc
 
 MINIMAL = b"apiVersion: v1\nkind: Config\nclusters: []\ncontexts: []\nusers: []\n"
 CANARY = "synthetic-secret-do-not-expose"
+
+STATE_CANARIES = (
+    "synthetic-bearer-token-canary",
+    "synthetic-raw-yaml-secret-canary",
+    "synthetic-context-name-canary",
+    "synthetic-cluster-name-canary",
+    "synthetic-user-name-canary",
+    "synthetic-ca-path-canary",
+    "synthetic-certificate-path-canary",
+    "synthetic-private-key-path-canary",
+)
+
+
+def assert_serialization_rejected(
+    document: object, operation: Callable[[object], object], path: Path
+) -> None:
+    with pytest.raises(TypeError) as caught:
+        operation(document)
+    outward = str(caught.value) + repr(caught.value)
+    assert all(canary not in outward for canary in STATE_CANARIES)
+    assert str(path) not in outward
+    assert str(path.parent) not in outward
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+
+
+def test_document_state_and_serialization_confinement(tmp_path: Path) -> None:
+    token, raw, context, cluster, user, ca, certificate, key = STATE_CANARIES
+    path = tmp_path / CANARY
+    path.write_text(
+        f"""apiVersion: v1
+kind: Config
+contexts: [{{name: {context}, context: {{cluster: {cluster}, user: {user}}}}}]
+clusters: [{{name: {cluster}, cluster: {{server: https://api.example.invalid, certificate-authority: {ca}}}}}]
+users: [{{name: {user}, user: {{token: {token}, client-certificate: {certificate}, client-key: {key}}}}}]
+extra: {raw}
+""",
+        encoding="utf-8",
+    )
+    document = kc._load_document(path)
+    assert isinstance(document, kc._Document)
+    assert repr(document) == str(document) == "<kubeconfig document: redacted>"
+    operations: list[Callable[[object], object]] = [
+        vars,
+        lambda value: getattr(dataclasses, "asdict")(value),
+        json.dumps,
+        lambda value: getattr(value, "__getstate__")(),
+        lambda value: getattr(value, "__reduce__")(),
+        copy.copy,
+        copy.deepcopy,
+    ]
+
+    def pickle_operation(protocol: int) -> Callable[[object], object]:
+        return lambda value: pickle.dumps(value, protocol)
+
+    def reduction_operation(protocol: int) -> Callable[[object], object]:
+        return lambda value: getattr(value, "__reduce_ex__")(protocol)
+
+    for protocol in range(pickle.HIGHEST_PROTOCOL + 1):
+        operations.extend(
+            [
+                pickle_operation(protocol),
+                reduction_operation(protocol),
+            ]
+        )
+    for operation in operations:
+        assert_serialization_rejected(document, operation, path)
+
+    # Model the original missing guards without producing a serialized payload.
+    raw_data = document._data
+
+    class UnguardedDocument:
+        __slots__ = ("_data",)
+
+        def __init__(self) -> None:
+            self._data = raw_data
+
+    unguarded = UnguardedDocument()
+    state_text = repr(unguarded.__getstate__())
+    assert all(canary in state_text for canary in STATE_CANARIES)
+    with pytest.raises(pytest.fail.Exception):
+        assert_serialization_rejected(
+            unguarded, lambda value: getattr(value, "__getstate__")(), path
+        )
 
 
 def load(tmp_path: Path, data: bytes) -> kc._Document | kc._Failure:
