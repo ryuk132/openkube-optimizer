@@ -24,6 +24,14 @@ class _Failure(Enum):
     MALFORMED_YAML = "malformed_yaml"
     UNSUPPORTED_YAML = "unsupported_yaml_feature"
     INVALID_STRUCTURE = "invalid_kubeconfig_structure"
+    CONTEXT_NOT_FOUND = "requested_context_not_found"
+    INVALID_NAMED_ENTRY = "duplicate_or_invalid_named_entry"
+    CLUSTER_NOT_FOUND = "referenced_cluster_not_found"
+    USER_NOT_FOUND = "referenced_user_not_found"
+    INVALID_CONTEXT = "invalid_selected_context"
+    INVALID_CLUSTER = "invalid_selected_cluster"
+    INVALID_ENDPOINT = "invalid_endpoint"
+    INVALID_AUTH = "unsupported_or_invalid_selected_authentication"
 
 
 class _Document:

@@ -129,6 +129,7 @@ _thread.start_new_thread = reject
 import openkube_optimizer
 import openkube_optimizer.collection
 import openkube_optimizer.collection.kubeconfig
+import openkube_optimizer.collection.preflight
 import openkube_optimizer.domain.models
 import openkube_optimizer.domain.quantities
 assert not events

@@ -1,6 +1,6 @@
 # v0.1 security model
 
-Status: **Accepted architecture requirements — frozen on 2026-09-28, not implemented guarantees.** Read-only operation is mandatory, but read access still has confidentiality and availability risks. Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30, amends the transport/setup profile; M3 design is complete; only dependency/package-boundary slice 1 is implemented, and all authentication/transport/collection controls remain unimplemented.
+Status: **Accepted architecture requirements — frozen on 2026-09-28, not implemented guarantees.** Read-only operation is mandatory, but read access still has confidentiality and availability risks. Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30, amends the transport/setup profile; M3 design is complete; M3.1/M3.2A/M3.2B implement dependencies, restricted documents and explicit endpoint/authentication preflight. Credential-file loading, TLS, transport and collection controls remain unimplemented.
 
 ## Permissions
 

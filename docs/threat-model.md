@@ -1,6 +1,6 @@
 # Initial threat model
 
-Status: **Accepted architecture threat model — frozen on 2026-09-28; mitigations remain unimplemented.** v0.1 is local CLI only with explicit namespaces. Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md) amends the resolver/credential/setup boundary on 2026-09-30. M3 design is complete; dependency/package-boundary slice 1 is implemented, while runtime I/O controls remain unimplemented and separately authorized. Validate controls before collection acceptance.
+Status: **Accepted architecture threat model — frozen on 2026-09-28; mitigations remain unimplemented.** v0.1 is local CLI only with explicit namespaces. Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md) amends the resolver/credential/setup boundary on 2026-09-30. M3 design is complete; M3.1/M3.2A/M3.2B implement dependency boundaries, restricted documents and explicit preflight; credential loading and network controls remain unimplemented and separately authorized. Validate controls before collection acceptance.
 
 ## Assets and boundaries
 
