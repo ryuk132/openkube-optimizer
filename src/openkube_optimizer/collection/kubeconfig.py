@@ -33,6 +33,11 @@ class _Failure(Enum):
     INVALID_CLUSTER = "invalid_selected_cluster"
     INVALID_ENDPOINT = "invalid_endpoint"
     INVALID_AUTH = "unsupported_or_invalid_selected_authentication"
+    CREDENTIAL_UNAVAILABLE = "credential_input_unavailable"
+    CREDENTIAL_NONREGULAR = "nonregular_credential_input"
+    CREDENTIAL_TOO_LARGE = "credential_input_too_large"
+    CREDENTIAL_CHANGED = "credential_input_changed"
+    CREDENTIAL_PROFILE_UNAVAILABLE = "credential_file_profile_unavailable"
 
 
 class _Document:

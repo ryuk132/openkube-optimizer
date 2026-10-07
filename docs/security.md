@@ -1,6 +1,6 @@
 # v0.1 security model
 
-Status: **Accepted architecture requirements — frozen on 2026-09-28, not implemented guarantees.** Read-only operation is mandatory, but read access still has confidentiality and availability risks. Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30, amends the transport/setup profile; M3 design is complete; M3.1/M3.2A/M3.2B implement dependencies, restricted documents and explicit endpoint/authentication preflight. Credential-file loading, TLS, transport and collection controls remain unimplemented.
+Status: **Accepted architecture requirements — frozen on 2026-09-28, not implemented guarantees.** Read-only operation is mandatory, but read access still has confidentiality and availability risks. Accepted [ADR 0008](adr/0008-restricted-kubeconfig-and-bounded-transport.md), dated 2026-09-30, amends the transport/setup profile; M3 design is complete; M3.1/M3.2 are complete and committed. M3.3A implements only the trusted local credential-file boundary; credential parsing, TLS, transport and collection controls remain unimplemented.
 
 ## Permissions
 
@@ -46,6 +46,8 @@ No in-cluster loader or fallback, automatic context switching, credential/token 
 Verify TLS certificates and hostnames; reject plain-HTTP API endpoints and insecure-skip-verification settings inherited from kubeconfig as well as any attempted CLI override. Use only the selected API endpoint and tested client authentication; no arbitrary URL fetches or direct node/kubelet access. The [egress contract](data-and-egress.md#expected-network-communication) distinguishes API requests from DNS, credential helpers, transport proxies, and operator-controlled output capture. No telemetry or analytics. A configured HTTP transport proxy is not authorization to use Kubernetes proxy functionality.
 
 ### Trusted credential and setup boundary
+
+M3.3A's private `collection/credentials.py` requires Linux O_PATH and procfs. It classifies each explicitly selected credential using O_PATH/fstat before any data-open, then reopens the pinned regular object through `/proc/self/fd`, compares descriptor identity/metadata, and enforces `credential-input-v1`: 1 MiB per file with at most one overflow byte read. The CA becomes a bounded byte snapshot with its descriptor closed; client certificate/key inspection bytes are discarded and read descriptors remain owned until explicit close/context exit. No bearer token is copied. Non-Linux/missing O_PATH fails closed without fallback. Local-filesystem trust is a caller assumption, not established by metadata. No parsing, OpenSSL, TLS client or network behavior is implemented here.
 
 Accepted ADR 0008 D5 requires trusted local regular CA/certificate/key files with approved trusted symlinks and stable contents during TLS-context construction. Validate type/identity using descriptors, inspect sizes and bound actual reads with one-byte overflow detection. CA is certificate-only material loaded from a bounded memory snapshot via `cadata`, never by reopening the original path. Client certificate/key descriptors remain open through native loading via `/proc/self/fd/<fd>` on the initial Ubuntu profile. This preserves inode identity against path/symlink replacement; native rereads still observe in-place mutation. Fail closed without path/authentication fallback.
 
