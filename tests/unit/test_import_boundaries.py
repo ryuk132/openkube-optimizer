@@ -56,6 +56,7 @@ def test_sdk_imports_stay_in_collection_and_pure_layers_stay_independent() -> No
             if root == "yaml":
                 assert relative.as_posix() == "collection/kubeconfig.py", relative
             if relative.parts[0] in {"domain", "analysis"}:
+                assert root != "ssl", (relative, module)
                 assert (
                     root in sys.stdlib_module_names
                     or module == "openkube_optimizer"

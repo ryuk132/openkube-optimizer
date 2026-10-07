@@ -38,6 +38,10 @@ class _Failure(Enum):
     CREDENTIAL_TOO_LARGE = "credential_input_too_large"
     CREDENTIAL_CHANGED = "credential_input_changed"
     CREDENTIAL_PROFILE_UNAVAILABLE = "credential_file_profile_unavailable"
+    INVALID_CA_MATERIAL = "invalid_ca_material"
+    INVALID_CLIENT_IDENTITY = "invalid_client_identity"
+    UNSUPPORTED_ENCRYPTED_PRIVATE_KEY = "unsupported_encrypted_private_key"
+    TLS_CONTEXT_CONSTRUCTION_FAILED = "tls_context_construction_failed"
 
 
 class _Document:
