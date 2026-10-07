@@ -1,6 +1,6 @@
 # Planned repository and Python modules
 
-Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. M3.1 supplies dependencies/package boundaries; M3.2A adds the private restricted document loader; M3.2 is complete and committed. M3.3A is native-accepted and committed; M3.3B adds private local TLS construction only. Later application implementation, manifests and Git publication remain separately authorized.
+Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. M3.1 supplies dependencies/package boundaries; M3.2A adds the private restricted document loader; M3.2 is complete and committed. M3.3A/M3.3B are native-accepted and committed; M3.3C validates their complete local pipeline without production changes. Later application implementation, manifests and Git publication remain separately authorized.
 
 ## Current implementation
 
@@ -25,6 +25,7 @@ openkube-optimizer/
 │       ├── __init__.py
 │       ├── models.py
 │       └── quantities.py
+├── tests/integration/test_credential_tls.py
 ├── tests/fixtures/tls/             # static synthetic certificates/keys
 ├── tests/unit/
 │   ├── test_package.py
