@@ -49,6 +49,10 @@ class _Failure(Enum):
     RESOLUTION_TOO_MANY_RESULTS = "resolution_too_many_results"
     RESOLUTION_TOO_LARGE = "resolution_too_large"
     RESOLUTION_TIMEOUT = "resolution_timeout"
+    TRANSPORT_DEADLINE_EXPIRED = "transport_deadline_expired"
+    CONNECTION_FAILED = "connection_failed"
+    TLS_HANDSHAKE_FAILED = "tls_handshake_failed"
+    TLS_VERIFICATION_FAILED = "tls_verification_failed"
 
 
 class _Document:
