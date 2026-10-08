@@ -42,6 +42,13 @@ class _Failure(Enum):
     INVALID_CLIENT_IDENTITY = "invalid_client_identity"
     UNSUPPORTED_ENCRYPTED_PRIVATE_KEY = "unsupported_encrypted_private_key"
     TLS_CONTEXT_CONSTRUCTION_FAILED = "tls_context_construction_failed"
+    RESOLVER_UNAVAILABLE = "resolver_unavailable"
+    RESOLUTION_FAILED = "resolution_failed"
+    RESOLUTION_EMPTY = "resolution_empty"
+    RESOLUTION_INVALID = "resolution_invalid"
+    RESOLUTION_TOO_MANY_RESULTS = "resolution_too_many_results"
+    RESOLUTION_TOO_LARGE = "resolution_too_large"
+    RESOLUTION_TIMEOUT = "resolution_timeout"
 
 
 class _Document:

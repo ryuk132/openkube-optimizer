@@ -1,6 +1,6 @@
 # Planned repository and Python modules
 
-Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. M3.1 supplies dependencies/package boundaries; M3.2A adds the private restricted document loader; M3.2 is complete and committed. M3.3A/M3.3B are native-accepted and committed; M3.3C validates their complete local pipeline without production changes. Later application implementation, manifests and Git publication remain separately authorized.
+Status: **Accepted architecture plan — frozen on 2026-09-28; Milestone 1 complete and committed.** The authorized [Milestone 2 domain records and quantities](domain-model.md) are complete and accepted on 2026-09-29. Other application modules remain unimplemented. See [development](development.md), Accepted [ADR 0006](adr/0006-python-project-foundation.md), and the approved [reference targets](compatibility.md). Those targets do not establish runtime support. ADR 0008 was accepted on 2026-09-30; M3 architecture/design is complete. M3.1 supplies dependencies/package boundaries; M3.2A adds the private restricted document loader; M3.2 is complete and committed. M3.3A/M3.3B are native-accepted and committed; M3.3C validates their complete local pipeline without production changes. M3.4A adds native-validated bounded local Varlink resolution only. Later application implementation, manifests and Git publication remain separately authorized.
 
 ## Current implementation
 
@@ -20,12 +20,14 @@ openkube-optimizer/
 │   │   ├── kubeconfig.py
 │   │   ├── preflight.py
 │   │   ├── credentials.py
-│   │   └── tls.py
+│   │   ├── tls.py
+│   │   └── resolver.py
 │   └── domain/
 │       ├── __init__.py
 │       ├── models.py
 │       └── quantities.py
 ├── tests/integration/test_credential_tls.py
+├── tests/integration/test_resolved_native.py
 ├── tests/fixtures/tls/             # static synthetic certificates/keys
 ├── tests/unit/
 │   ├── test_package.py
@@ -35,11 +37,12 @@ openkube-optimizer/
 │   ├── test_preflight.py
 │   ├── test_credentials.py
 │   ├── test_tls.py
+│   ├── test_resolver.py
 │   └── test_quantities.py
 └── docs/                           # includes domain-model.md and Accepted ADRs 0007/0008
 ```
 
-The local `.venv`, tool caches, and `dist/` are ignored. Only concrete synthetic TLS fixtures exist; no CLI entry point exists. Slice 1 adds only kubernetes==36.0.3 and h11==0.16.0 as direct runtime dependencies and a docstring-only collection initializer; future collection/projection/ownership modules are not created. M3.2A adds `collection/kubeconfig.py` for explicit-path bounded document loading with direct PyYAML==6.0.3. M3.2B adds `collection/preflight.py` with private immutable records and explicit context/cluster/user, endpoint and authentication checks. M3.3A adds `collection/credentials.py`: Linux descriptor-first classification, bounded inspection, CA snapshots and explicit ownership of client descriptors; no credential parsing, TLS or connections in that module. M3.3B adds `collection/tls.py`: selected CA-only trust, TLS >= 1.2, borrowed procfs client descriptors and rejecting encrypted-key callbacks; no handshake or network. Initializers have no I/O. Tests cover installed-package metadata and pure domain invariants/conversion. No collection, evidence evaluation, or reporting behavior exists.
+The local `.venv`, tool caches, and `dist/` are ignored. Only concrete synthetic TLS fixtures exist; no CLI entry point exists. Slice 1 adds only kubernetes==36.0.3 and h11==0.16.0 as direct runtime dependencies and a docstring-only collection initializer; future collection/projection/ownership modules are not created. M3.2A adds `collection/kubeconfig.py` for explicit-path bounded document loading with direct PyYAML==6.0.3. M3.2B adds `collection/preflight.py` with private immutable records and explicit context/cluster/user, endpoint and authentication checks. M3.3A adds `collection/credentials.py`: Linux descriptor-first classification, bounded inspection, CA snapshots and explicit ownership of client descriptors; no credential parsing, TLS or connections in that module. M3.3B adds `collection/tls.py`: selected CA-only trust, TLS >= 1.2, borrowed procfs client descriptors and rejecting encrypted-key callbacks; no handshake or network. M3.4A adds `collection/resolver.py`: one bounded nonblocking call to the fixed trusted resolved Varlink endpoint, ordered/deduplicated private candidates and deterministic IPC cleanup; no NSS or candidate connection. Initializers have no I/O. Tests cover installed-package metadata and pure domain invariants/conversion. No collection, evidence evaluation, or reporting behavior exists.
 
 ## Future repository plan
 
