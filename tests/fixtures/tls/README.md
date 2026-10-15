@@ -29,3 +29,7 @@ Certificates use fixed validity from 2020-01-01 through 2120-01-01; handshake
 tests verify normal certificate time and logical hostname without clock patching.
 All synthetic PEM files are excluded from built wheels. No operator material,
 runtime fixture generation, additional dependency or external helper is used.
+
+M3.4C reuses the six M3.4B server inputs for synthetic loopback HTTP/1.1
+responses, framing/limit/deadline probes and installed-wheel validation. No
+additional certificate/key files or fixture-generation tooling are introduced.

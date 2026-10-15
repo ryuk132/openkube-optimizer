@@ -53,6 +53,11 @@ class _Failure(Enum):
     CONNECTION_FAILED = "connection_failed"
     TLS_HANDSHAKE_FAILED = "tls_handshake_failed"
     TLS_VERIFICATION_FAILED = "tls_verification_failed"
+    HTTP_REQUEST_INVALID = "http_request_invalid"
+    HTTP_WRITE_FAILED = "http_write_failed"
+    HTTP_RESPONSE_INVALID = "http_response_invalid"
+    HTTP_RESPONSE_TOO_LARGE = "http_response_too_large"
+    HTTP_CONNECTION_CLOSED = "http_connection_closed"
 
 
 class _Document:
