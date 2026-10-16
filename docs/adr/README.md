@@ -14,6 +14,7 @@ ADRs **0001–0005 are Accepted on 2026-09-28**, following explicit user approva
 | [0008](0008-restricted-kubeconfig-and-bounded-transport.md) | Restricted kubeconfig loading, strict wire projection, and bounded Ubuntu transport | Accepted | 2026-09-30 |
 | [0009](0009-offline-report-viewer.md) | Future offline static viewer consuming only the versioned JSON report | Accepted | 2026-10-15 |
 | [0010](0010-controlled-kubernetes-sdk-dispatch.md) | M3.5 controlled generated-request description and dispatch through the M3.4 transport | Accepted | 2026-10-16 |
+| [0011](0011-characterized-sdk-import-side-effects.md) | Characterized inert urllib3 import-time default-manager allocation; no stock transport authority | Accepted | 2026-10-16 |
 
 ADR 0008 was accepted on 2026-09-30 after transport and credential-loading feasibility review. D1–D6, the trusted stable-file/setup boundary, kubernetes==36.0.3 implementation intent, h11==0.16.0 selection and unchanged closed report schema are resolved. Its separately authorized documentation consistency pass is complete. Architecture/design for Milestone 3 is complete; implementation, dependency addition and cluster work require separate authorization. Disposable Ubuntu probes establish limited feasibility evidence, not implemented runtime support or Kubernetes/platform compatibility.
 
