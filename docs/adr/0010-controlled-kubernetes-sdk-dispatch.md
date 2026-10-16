@@ -1,8 +1,9 @@
 # ADR 0010: Controlled Kubernetes SDK dispatch
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-15
-- Authority: Proposed for coordinator review as the M3.5 design. It authorizes no implementation, dependency, cluster contact or document change beyond this proposal. If accepted, it supersedes only the two ADR 0008 statements named under [Relationship to ADR 0008](#relationship-to-adr-0008); every other accepted decision is unchanged.
+- Accepted: 2026-10-16
+- Authority: Accepted by the project coordinator on 2026-10-16 as the M3.5 design direction only. Acceptance does not claim M3.5 is implemented, authorize M3.5 or M3.6 implementation, change v0.1 read-only scope, or authorize dependencies or cluster contact. It supersedes only the two ADR 0008 statements named under [Relationship to ADR 0008](#relationship-to-adr-0008); every other accepted decision is unchanged.
 
 ## Context
 
@@ -93,9 +94,9 @@ M3.5 performs no retry, re-dispatch, redirect or reconnection; one generated dis
 
 ### D6 — Response boundary, status policy and failures
 
-Only status 200 succeeds. It returns a private immutable record with slots, redacted `repr`, and serialization and copy rejection, following the M3.4 pattern. It holds the operation enum, the requested namespace and the bounded raw body bytes. No status, headers, SDK object, socket or candidate are retained. Every other final status releases any body immediately without inspection and returns a fixed failure. The prerequisite M3.4 correction returns non-2xx statuses with an empty body without draining; other 2xx bodies remain bounded by M3.4. Status handling extends the existing private `_Failure` enum:
+Only status 200 succeeds. It returns a private immutable record with slots, redacted `repr`, and serialization and copy rejection, following the M3.4 pattern. It holds the operation enum, the requested namespace and the bounded raw body bytes. The successful status is implicitly 200; no separate status field, headers, SDK object, socket or candidate are retained. Raw body bytes are transient memory-only data for M3.6: never persist or log them. Every other final status releases any body immediately without inspection and returns a fixed failure. The completed M3.4 correction returns non-2xx statuses with an empty body without draining; other 2xx bodies remain bounded by M3.4. The future implementation extends the existing private `_Failure` enum with the fixed members below. These are adapter-local categories, not new public diagnostic codes or exits; later CLI handling uses the existing [error policy](../cli-contract.md#json-schema-and-error-strategy).
 
-| Status | Proposed private failure | Later CLI handling (unchanged contract) |
+| Status | Future private failure | Later CLI handling (unchanged contract) |
 | --- | --- | --- |
 | 401 | `KUBERNETES_UNAUTHORIZED` | `AUTHENTICATION_FAILED`, fatal, no retry |
 | 403 | `KUBERNETES_FORBIDDEN` | `ACCESS_DENIED` for that namespace, no retry |
@@ -122,9 +123,9 @@ This assignment introduces no milestone conflict and changes no contract.
 
 - **Async/threads:** `async_req` other than `None` rejects; no `ThreadPool`, future or worker exists because no `ApiClient` exists.
 - **Retries/redirects:** urllib3 and stock REST are unreachable, so their `Retry(total=3)` and redirect defaults cannot run.
-- **Deserialization:** no `deserialize`, model construction or `ApiException`; `_preload_content` is never acted on.
+- **Deserialization:** no `deserialize`, `model_from_dict`, generated response-model construction or `ApiException`; `_preload_content` is never acted on.
 - **Global and configuration state:** no `Configuration` instance, default copy, `set_default`, kubeconfig or in-cluster loading, and therefore no proxy, `KUBECONFIG`, `HOME`, service-account or trust-store authority.
-- **Import:** importing the M3.5 module imports neither the SDK nor h11. The lazy SDK import's only recorded side effects are the module-level `KUBECONFIG` string read and the urllib3 IPv6 loopback bind, both already characterized; tests keep them visible.
+- **Import:** importing the M3.5 module imports neither the SDK nor h11. Explicit lazy SDK setup must match the pinned characterization above, including the `KUBECONFIG` string read, urllib3 IPv6 loopback bind-and-close and platform metadata reads. Native Linux import opens must be characterized and guarded during implementation acceptance. This permits no DNS, remote connect/send or stock transport setup.
 
 ### M3.5 / M3.6 boundary
 
@@ -132,7 +133,7 @@ M3.5 produces generated-request description → validated controlled dispatch �
 
 ## Relationship to ADR 0008
 
-If accepted, this ADR supersedes two statements in ADR 0008; they were demonstrated by a feasibility probe, not by the accepted transport:
+This ADR supersedes only two SDK-dispatch seam statements in ADR 0008; they were demonstrated by a feasibility probe, not by the accepted transport:
 
 - D1's "demonstrated interception point is `ApiClient.request` with synchronous generated calls and `_preload_content=False`".
 - The authentication section's "Construct fresh explicit SDK `Configuration` and `ApiClient` instances".
@@ -152,7 +153,7 @@ The probes above show that this path constructs proxy-aware stock transport obje
 
 - Generated SDK request knowledge stays useful while transport, credentials, configuration and response handling remain OpenKube-owned. Any SDK upgrade must re-run the characterization: changes to the call-signature or attribute set fail closed in tests.
 - The SDK import is heavy and loads urllib3/requests code that is never used for network I/O.
-- M3.4 currently reads final non-2xx bodies within its bounds before returning, contrary to ADR 0008 D2. M3.5 implementation is blocked until the accepted no-drain erratum is corrected and validated; this proposal authorizes no implementation.
+- The M3.4 no-drain erratum is implemented, validated and committed in `e9bc7ae`. Final non-2xx responses preserve status, return `body == b""` and close the single-use TLS transport without draining; final 2xx responses retain bounded body processing. The former technical prerequisite is resolved. M3.5 implementation still requires separate authorization.
 - Retry-After is not exposed in M3.5. No arbitrary response headers are added to M3.4. Any later Retry-After support requires separate authorization; M3.5 does not retry.
 - No Kubernetes, RBAC, pagination or real API payload behavior is established by this design.
 
@@ -168,7 +169,7 @@ The probes above show that this path constructs proxy-aware stock transport obje
 - A drift test pins the generated attribute set, kwargs list, templates, Accept list and response-type maps for kubernetes==36.0.3.
 
 **Integration (authoritative Ubuntu):**
-- Each operation runs over real M3.4 loopback TCP/TLS/h11 to a synthetic server serving canned bytes: exact request line, Host, Authorization or no Authorization, Accept and absence of other headers; a single exchange.
+- Each operation runs over real M3.4 loopback TCP/TLS/h11 to a synthetic server serving canned bytes: exact request line, Host, Connection, Authorization or no Authorization, Accept, fixed User-Agent and absence of other headers; a single exchange.
 - One deadline shared across describe/resolve/connect/exchange.
 - No retry or redirect.
 - The token and mTLS paths.
@@ -181,10 +182,10 @@ No cluster contact is required for M3.5 acceptance.
 
 ## Coordinator decisions and implementation gate
 
-The coordinator approved the design direction and the limited ADR 0008 supersession described above; ADR 0008 remains unedited. This ADR remains **Proposed**, not Accepted.
+The coordinator accepted the design direction and the limited ADR 0008 supersession described above on 2026-10-16; ADR 0008 remains unedited. This accepts the design only: M3.5 is not implemented, and neither M3.5 nor M3.6 implementation is authorized by this acceptance.
 
 - M3.5 dispatches exactly one page (`limit=200`, optionally preceded by `continue`); it never parses JSON, extracts `metadata.continue` or runs a pagination loop. M3.6 extracts the validated continuation; a later coordinator owns the loop and `max_pages_per_list = 100`. A 410 can later classify the pass as incomplete.
 - The future User-Agent is exactly `openkube-optimizer`.
 - Retry-After is not exposed; support requires separate authorization.
 - The future module remains inert and imports the SDK only during explicit setup. The characterized `KUBECONFIG` string access and urllib3 local AF_INET6 `::1` bind-and-close must remain guarded; no remote connect/send or arbitrary network I/O is authorized.
-- M3.5 implementation remains blocked on correction and validation of M3.4's accepted non-2xx close-without-draining contract. No M3.5 or M3.6 implementation is authorized by this design commit.
+- The M3.4 non-2xx close-without-draining prerequisite is resolved by `e9bc7ae`. M3.5 implementation can now be separately authorized; M3.6 remains future work requiring separate authorization.
