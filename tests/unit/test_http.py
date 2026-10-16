@@ -705,3 +705,95 @@ def test_parser_releases_buffers_without_waiting_for_cyclic_gc(
     finally:
         if was_enabled:
             gc.enable()
+
+
+@pytest.mark.parametrize("status", [300, 302, 404, 429, 500, 599])
+@pytest.mark.parametrize("chunked", [False, True])
+@pytest.mark.parametrize("coalesced", [False, True])
+@pytest.mark.parametrize("interim", [False, True])
+def test_non_2xx_stops_at_final_headers(
+    flow: Flow,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    status: int,
+    chunked: bool,
+    coalesced: bool,
+    interim: bool,
+) -> None:
+    import weakref
+
+    references: list[weakref.ReferenceType[h11.Connection]] = []
+    original = ht._parser
+
+    def observed(budget: ht._Budget) -> h11.Connection:
+        parser = original(budget)
+        references.append(weakref.ref(parser))
+        return parser
+
+    monkeypatch.setattr(ht, "_parser", observed)
+    framing = (
+        b"Transfer-Encoding: chunked\r\n"
+        if chunked
+        else b"Content-Length: 999999999999\r\n"
+    )
+    headers = f"HTTP/1.1 {status} Synthetic\r\n".encode() + framing + b"\r\n"
+    body = CANARY.encode()
+    if chunked:
+        body = hex(len(body))[2:].encode() + b"\r\n" + body + b"\r\n"
+    first = headers + (body if coalesced else b"")
+    if interim:
+        first = b"HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 103 Early Hints\r\n\r\n" + first
+    forbidden_read = AssertionError("Error body read attempted")
+    flow.stream.recv_steps = [first, forbidden_read]
+    result = flow.exchange()
+    assert isinstance(result, ht._HttpResponse)
+    assert result.status == status and result.body == b""
+    assert flow.stream.reads == 1 and flow.stream.recv_steps == [forbidden_read]
+    assert flow.stream.sent.count(b"GET ") == 1
+    assert flow.stream.close_count == 1 and flow.connection._socket is None
+    assert not flow.waits
+    assert CANARY not in repr(result) + str(result) + caplog.text
+    assert all(reference() is None for reference in references)
+
+
+@pytest.mark.parametrize("chunked", [False, True])
+def test_h11_early_close_state_is_single_use(chunked: bool) -> None:
+    parser = ht._parser(ht._Budget())
+    parser.send(
+        h11.Request(
+            method=b"GET",
+            target=b"/",
+            headers=[(b"Host", b"synthetic"), (b"Connection", b"close")],
+        )
+    )
+    parser.send(h11.EndOfMessage())
+    framing = (
+        b"Transfer-Encoding: chunked" if chunked else b"Content-Length: 999999999999"
+    )
+    parser.receive_data(b"HTTP/1.1 404 Synthetic\r\n" + framing + b"\r\n\r\n")
+    event = parser.next_event()
+    assert isinstance(event, h11.Response) and event.status_code == 404
+    assert parser.their_state is h11.SEND_BODY
+    assert parser.our_state is h11.MUST_CLOSE
+    assert parser.next_event() is h11.NEED_DATA
+    with pytest.raises(h11.LocalProtocolError):
+        parser.start_next_cycle()
+
+
+@pytest.mark.parametrize("control", [KeyboardInterrupt, SystemExit])
+def test_non_2xx_result_control_flow_closes(
+    flow: Flow, monkeypatch: pytest.MonkeyPatch, control: type[BaseException]
+) -> None:
+    flow.stream.recv_steps = [
+        b"HTTP/1.1 404 Synthetic\r\nContent-Length: 999999999\r\n\r\n"
+    ]
+
+    def abort(*, status: int, body: bytes) -> Never:
+        assert status == 404 and body == b""
+        raise control
+
+    monkeypatch.setattr(ht, "_HttpResponse", abort)
+    with pytest.raises(control):
+        flow.exchange()
+    assert flow.stream.reads == 1
+    assert flow.connection._socket is None and flow.stream.close_count == 1

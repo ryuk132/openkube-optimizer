@@ -182,7 +182,7 @@ def response_parts():
     global expected_status,expected_size
     body=CANARY.encode()
     if case in ('redirect302','redirect307','redirect308','denied','server-error'):
-        expected_status={'redirect302':302,'redirect307':307,'redirect308':308,'denied':403,'server-error':503}[case]
+        expected_status={'redirect302':302,'redirect307':307,'redirect308':308,'denied':403,'server-error':503}[case];expected_size=0
     if case=='malformed':yield b'HTTP/1.1 '+body+b'\r\n\r\n';return
     if case=='incomplete':yield b'HTTP/1.1 200 OK\r\nContent-Length: 9\r\n\r\nabc';return
     if case=='switch':yield b'HTTP/1.1 101 Switching Protocols\r\nConnection: upgrade\r\nUpgrade: canary\r\n\r\n';return
@@ -507,7 +507,7 @@ try:
     if isinstance(result,ht._HttpResponse):
         assert result.status==expected_status and len(result.body)==expected_size
         if case not in ('body-exact','body-over','canary-body','wire-exact','wire-over','canary-wire'):
-            assert result.body==CANARY.encode()
+            assert result.body==(CANARY.encode() if 200 <= expected_status <= 299 else b'')
     else:
         expected=(F.TLS_VERIFICATION_FAILED if case in ('verification','ip-identity','canary-verification') else
             F.TLS_HANDSHAKE_FAILED if case=='protocol' else F.RESOLUTION_TOO_MANY_RESULTS if case=='raw-limit' else

@@ -105,10 +105,23 @@ if case != 'import':
         ca_path=Path('/unused-credential-canary'),auth=pf._BearerToken(token='unused-endpoint-auth-canary'))
     resolution=rs._Resolution((rs._ResolvedAddress(2,ipaddress.ip_address('127.0.0.1').packed,None),))
 
-    def response_parts():
+    NO_DRAIN = ('error-length', 'error-chunked', 'error-stall', 'error-same-chunk', 'error-interim', 'redirect-stall')
+
+    def response_parts(server):
         global expected_status,expected_body_size
         body=CANARY.encode()
         normal=b'HTTP/1.1 200 OK\r\nContent-Length: '+str(len(body)).encode()+b'\r\n\r\n'+body
+        if case in NO_DRAIN:
+            expected_status = 302 if case == 'redirect-stall' else 500 if case == 'error-chunked' else 429 if case == 'error-stall' else 404
+            expected_body_size = 0
+            framing = b'Transfer-Encoding: chunked' if case == 'error-chunked' else b'Content-Length: 999999999999'
+            headers = f'HTTP/1.1 {expected_status} Synthetic\r\n'.encode() + framing + b'\r\n\r\n'
+            if case == 'error-interim':headers = b'HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 103 Early Hints\r\n\r\n' + headers
+            yield headers + (body if case == 'error-same-chunk' else b'')
+            # Do not send a body. Wait for client closure, not a harness signal:
+            # draining would exhaust the caller deadline and fail the result.
+            received_tail.append(server.recv(1))
+            return
         if case == 'chunked':
             yield b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n'
             for part in (body[:3],body[3:]):yield hex(len(part))[2:].encode()+b';x=synthetic\r\n'+part+b'\r\n'
@@ -116,7 +129,7 @@ if case != 'import':
         elif case == 'interim':
             yield b'HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 103 Early Hints\r\nLink: ignored\r\n\r\n'+normal
         elif case in ('redirect','denied','server-error'):
-            expected_status={'redirect':302,'denied':403,'server-error':503}[case]
+            expected_status={'redirect':302,'denied':403,'server-error':503}[case];expected_body_size=0
             yield f'HTTP/1.1 {expected_status} Synthetic\r\nLocation: https://redirect.invalid/\r\nRetry-After: 1\r\nContent-Length: '.encode()+str(len(body)).encode()+b'\r\n\r\n'+body
         elif case == 'empty':
             expected_status=204;expected_body_size=0
@@ -190,8 +203,8 @@ if case != 'import':
                     requests_seen.append(bytes(received))
                 elif isinstance(event,h11.EndOfMessage):break
                 else:raise AssertionError('Unexpected request event/body')
-            for part in response_parts():server.sendall(part)
-            if case not in ('close','incomplete','no-response'):
+            for part in response_parts(server):server.sendall(part)
+            if case not in ('close','incomplete','no-response') + NO_DRAIN:
                 received_tail.append(server.recv(1))
         except (ssl.SSLError,ConnectionError):pass
         except BaseException as error:server_errors.append(type(error).__name__)
@@ -317,6 +330,11 @@ try:
         elapsed=time.monotonic()-started
         if case in ('stall-header','stall-body'):assert elapsed<0.6 and time.monotonic()-deadline<0.6
         assert written.count(b'GET ') == (0 if case in ('expired','write-failure') else 1)
+        if case in NO_DRAIN:
+            assert connection._socket is None and stream.fileno() == -1
+            assert all(selector.finished for selector in selectors_seen)
+            assert elapsed < 1.0 and time.monotonic() < deadline
+            assert value.body == b'' and CANARY not in repr(value) + str(value)
         if case=='partial':assert stream.sends>2
         if case=='want-read':assert selectors.EVENT_READ in waits
         if case=='want-write':assert selectors.EVENT_WRITE in waits
@@ -348,6 +366,12 @@ CASES = (
     "redirect",
     "denied",
     "server-error",
+    "error-length",
+    "error-chunked",
+    "error-stall",
+    "error-same-chunk",
+    "error-interim",
+    "redirect-stall",
     "close",
     "malformed",
     "incomplete",

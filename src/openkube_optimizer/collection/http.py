@@ -344,6 +344,11 @@ def _exchange(
                 if status is not None or event.http_version not in (b"1.0", b"1.1"):
                     raise _ResponseInvalid
                 status = event.status_code
+                if not 200 <= status <= 299:
+                    # Single-use connection: do not request Data/EndOfMessage
+                    # or another read to drain an unsuccessful response. The
+                    # finally block closes TLS without shutdown or reuse.
+                    return _HttpResponse(status=status, body=b"")
                 budget.final_response = True
                 fields = dict(event.headers)
                 if b"content-length" in fields and b"transfer-encoding" in fields:
